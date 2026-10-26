@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "FanaticalGrabber",
+  "version": "2.1.1",
+  "description": "Reveal, copy, export and redeem your Fanatical game keys.",
+  "permissions": [
+    "clipboardWrite",
+    "storage",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://store.steampowered.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.fanatical.com/*",
+        "https://fanatical.com/*"
+      ],
+      "js": [
+        "xlsx.full.min.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
