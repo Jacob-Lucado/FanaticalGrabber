@@ -235,12 +235,32 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   document.addEventListener('click', e => { if (!fg.contains(e.target)) setMenu(false); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
 })();
+
+// Visitor counter: totals only. A browser counts as a new visitor once (remembered in this browser), no cookies, no addresses stored.
+document.addEventListener('DOMContentLoaded', () => {
+  const out = document.getElementById('visits');
+  if (!out) return;
+  const URL_ = 'https://steamvaluechecker.fly.dev/api/visits/fanaticalgrabber';
+  let isNew = false;
+  try { isNew = !localStorage.getItem('fg_visited'); } catch (e) { /* storage blocked: count as a view only */ }
+  const show = d => {
+    if (!d || typeof d.visitors !== 'number') return;
+    const n = v => Number(v).toLocaleString();
+    out.textContent = n(d.visitors) + ' visitors · ' + n(d.views) + ' page views';
+    out.hidden = false;
+  };
+  fetch(URL_ + (isNew ? '?new=1' : ''), { method: 'POST', mode: 'cors', keepalive: true })
+    .then(r => (r.ok ? r.json() : null))
+    .then(d => { show(d); if (d && isNew) { try { localStorage.setItem('fg_visited', '1'); } catch (e) { /* ignore */ } } })
+    .catch(() => fetch(URL_).then(r => r.json()).then(show).catch(() => {}));
+});
 </script>
 
 
 <footer><div class="wrap">
   <span>© 2026 <a href="https://x.com/twit_user69" rel="noopener noreferrer" target="_blank">Jacob Lucado</a>. FanaticalGrabber v2.1.1</span>
   <span>Not affiliated with Fanatical or Valve. Steam is a trademark of Valve Corporation.</span>
+  <span id="visits" hidden aria-live="polite"></span>
 </div></footer>
 </body>
 </html>
