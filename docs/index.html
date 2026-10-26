@@ -237,22 +237,39 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 })();
 
 // Visitor counter: totals only. A browser counts as a new visitor once (remembered in this browser), no cookies, no addresses stored.
+// "Viewing now" uses a random id made for this tab only; the server forgets it 75 seconds after the last ping.
 document.addEventListener('DOMContentLoaded', () => {
   const out = document.getElementById('visits');
   if (!out) return;
-  const URL_ = 'https://steamvaluechecker.fly.dev/api/visits/fanaticalgrabber';
+  const BASE = 'https://steamvaluechecker.fly.dev/api/visits/fanaticalgrabber';
+  const rnd = new Uint8Array(12); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(rnd) : rnd.forEach((_, i) => { rnd[i] = Math.random() * 256; });
+  const id = Array.from(rnd, b => (b % 36).toString(36)).join('');
   let isNew = false;
   try { isNew = !localStorage.getItem('fg_visited'); } catch (e) { /* storage blocked: count as a view only */ }
+  let last = null;
   const show = d => {
     if (!d || typeof d.visitors !== 'number') return;
+    last = d;
     const n = v => Number(v).toLocaleString();
-    out.textContent = n(d.visitors) + ' visitors · ' + n(d.views) + ' page views';
+    out.textContent = '';
+    if (typeof d.online === 'number') {
+      const dot = document.createElement('span'); dot.textContent = '● '; dot.style.color = '#3ddc97'; dot.setAttribute('aria-hidden', 'true');
+      out.append(dot, n(Math.max(1, d.online)) + ' viewing now · ');
+    }
+    out.append(n(d.visitors) + ' visitors · ' + n(d.views) + ' page views');
     out.hidden = false;
   };
-  fetch(URL_ + (isNew ? '?new=1' : ''), { method: 'POST', mode: 'cors', keepalive: true })
+  fetch(BASE + '?id=' + id + (isNew ? '&new=1' : ''), { method: 'POST', mode: 'cors', keepalive: true })
     .then(r => (r.ok ? r.json() : null))
     .then(d => { show(d); if (d && isNew) { try { localStorage.setItem('fg_visited', '1'); } catch (e) { /* ignore */ } } })
-    .catch(() => fetch(URL_).then(r => r.json()).then(show).catch(() => {}));
+    .catch(() => fetch(BASE).then(r => r.json()).then(show).catch(() => {}));
+  // Heartbeat while the tab is visible, so "viewing now" is people actually looking at the page.
+  const beat = () => {
+    if (document.hidden || !last) return;
+    fetch(BASE + '/ping?id=' + id, { method: 'POST', mode: 'cors' }).then(r => (r.ok ? r.json() : null)).then(show).catch(() => {});
+  };
+  setInterval(beat, 30000);
+  document.addEventListener('visibilitychange', beat);
 });
 </script>
 
