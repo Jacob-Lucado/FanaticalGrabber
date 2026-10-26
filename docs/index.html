@@ -237,13 +237,15 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 })();
 
 // Visitor counter: totals only. A browser counts as a new visitor once (remembered in this browser), no cookies, no addresses stored.
-// "Viewing now" uses a random id made for this tab only; the server forgets it 75 seconds after the last ping.
+// "Viewing now" uses a random id kept for this tab only (cleared when the tab closes); the server forgets it 75 seconds after the last ping.
 document.addEventListener('DOMContentLoaded', () => {
   const out = document.getElementById('visits');
   if (!out) return;
   const BASE = 'https://steamvaluechecker.fly.dev/api/visits/fanaticalgrabber';
   const rnd = new Uint8Array(12); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(rnd) : rnd.forEach((_, i) => { rnd[i] = Math.random() * 256; });
-  const id = Array.from(rnd, b => (b % 36).toString(36)).join('');
+  let id = Array.from(rnd, b => (b % 36).toString(36)).join('');
+  // Keep the same id across refreshes of this tab so reloading doesn't count as another viewer.
+  try { const k = sessionStorage.getItem('fg_tab'); if (k && /^[a-z0-9]{12}$/.test(k)) id = k; else sessionStorage.setItem('fg_tab', id); } catch (e) { /* storage blocked */ }
   let isNew = false;
   try { isNew = !localStorage.getItem('fg_visited'); } catch (e) { /* storage blocked: count as a view only */ }
   let last = null;
