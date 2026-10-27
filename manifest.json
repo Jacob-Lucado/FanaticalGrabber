@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FanaticalGrabber",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Reveal, copy, export and redeem your Fanatical game keys.",
   "permissions": [
     "clipboardWrite",

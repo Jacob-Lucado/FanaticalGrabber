@@ -31,6 +31,36 @@
         return line || "Unknown Game";
     }
 
+    // The order page shows one TOTAL for the whole order (per-game prices are not shown), so that total is split evenly
+    // across the keys on the page. Returns a number, or null when there is not exactly one order total to read.
+    function orderTotal() {
+        // Fanatical's order header is a row of `.column-cell` divs (number, date, status, total); only the total is money.
+        const money = [...document.querySelectorAll(".column-cell")].map(el => el.textContent.trim()).filter(t => /^[$€£]\s?\d[\d.,]*$/.test(t));
+        if (money.length === 1) return parseAmount(money[0]);
+        const labels = [...document.querySelectorAll("th, td, div, span, dt, p")]
+            .filter(el => !el.children.length && el.textContent.trim().toLowerCase() === "total");
+        if (labels.length !== 1) return null;
+        const label = labels[0];
+        // The amount is in the cell under the label (table header row) or right after it.
+        let amount = null;
+        const cell = label.closest("th, td");
+        const table = label.closest("table");
+        if (cell && table) {
+            const i = [...cell.parentElement.children].indexOf(cell);
+            amount = table.querySelector(`tbody tr td:nth-child(${i + 1}), tr + tr td:nth-child(${i + 1})`)?.textContent;
+        }
+        amount ??= label.nextElementSibling?.textContent ?? label.parentElement?.nextElementSibling?.textContent;
+        return parseAmount(amount);
+    }
+
+    function parseAmount(text) {
+        const m = String(text ?? "").match(/[$€£]\s?(\d[\d.,]*)/);
+        if (!m) return null;
+        const raw = /,\d{1,2}$/.test(m[1]) ? m[1].replace(/\./g, "").replace(",", ".") : m[1].replace(/,/g, "");
+        const n = Number(raw);
+        return Number.isFinite(n) && n >= 0 ? n : null;
+    }
+
     function collectKeys() {
         const seen = new Set();
         const rows = [];
@@ -43,6 +73,11 @@
             seen.add(id);
             rows.push({ title, key });
         });
+        const total = orderTotal();
+        if (total !== null && rows.length) {
+            const each = Math.round(total / rows.length * 100) / 100;
+            rows.forEach(r => { r.paid = each; });
+        }
         return rows;
     }
 
@@ -145,12 +180,12 @@
         {
             id: "csv", icon: "🧾", label: "CSV (.csv)", ext: "csv", mime: "text/csv",
             // BOM so Excel reads UTF-8 titles correctly
-            build: rows => "\uFEFF" + ["Game,Key", ...rows.map(r => `${csvCell(r.title)},${csvCell(r.key)}`)].join("\r\n") + "\r\n"
+            build: rows => "\uFEFF" + [rows.some(r => r.paid != null) ? "Game,Key,Paid" : "Game,Key", ...rows.map(r => `${csvCell(r.title)},${csvCell(r.key)}` + (rows.some(x => x.paid != null) ? `,${r.paid ?? ""}` : ""))].join("\r\n") + "\r\n"
         },
         {
             id: "json", icon: "🧩", label: "JSON (.json)", ext: "json", mime: "application/json",
             build: rows => JSON.stringify(
-                { exportedAt: new Date().toISOString(), count: rows.length, keys: rows.map(r => ({ game: r.title, key: r.key })) },
+                { exportedAt: new Date().toISOString(), count: rows.length, keys: rows.map(r => ({ game: r.title, key: r.key, ...(r.paid != null ? { paid: r.paid } : {}) })) },
                 null, 2
             )
         },
@@ -188,7 +223,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
             if (!svcToken) return setStatus("Cancelled");
         }
         setStatus("Sending titles to Steam Value Checker...", rows.length);
-        const r = await chrome.runtime.sendMessage({ type: "send-to-checker", token: svcToken, titles: rows.map(x => x.title) });
+        const r = await chrome.runtime.sendMessage({ type: "send-to-checker", token: svcToken, titles: rows.map(x => x.title), paid: rows.map(x => x.paid ?? null) });
         if (r?.status === "sent") {
             await chrome.storage.local.set({ svcToken });
             return setStatus(`Sent: ${r.added} added, ${r.updated} updated` + (r.notFound ? `, ${r.notFound} not matched` : ""), rows.length);
@@ -212,7 +247,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
                 if (typeof XLSX === "undefined") return setStatus("xlsx.full.min.js not loaded");
                 const exportDate = new Date().toLocaleString();
                 const sheet = XLSX.utils.json_to_sheet(
-                    rows.map(r => ({ Game: r.title, Key: r.key, ExportDate: exportDate }))
+                    rows.map(r => ({ Game: r.title, Key: r.key, ...(r.paid != null ? { Paid: r.paid } : {}), ExportDate: exportDate }))
                 );
                 sheet["!cols"] = [{ wch: 50 }, { wch: 30 }, { wch: 25 }];
                 const wb = XLSX.utils.book_new();

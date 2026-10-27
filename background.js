@@ -82,9 +82,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 // One-click send to the Steam Value Checker bot. Only game titles go out (never keys), with the member's own link code.
 const SVC = "https://steamvaluechecker.fly.dev";
-async function sendToChecker(token, titles) {
+async function sendToChecker(token, titles, paid = []) {
     if (!/^svcg_[A-Za-z0-9_-]{43}$/.test(token)) return { status: "bad_code", message: "That does not look like a link code. Use /library grabber in Discord." };
-    const entries = [...new Set(titles.map(t => String(t).trim()).filter(Boolean))].slice(0, 500).map(title => ({ title }));
+    const seen = new Set();
+    const entries = [];
+    titles.forEach((t, i) => {
+        const title = String(t).trim();
+        if (!title || seen.has(title.toLowerCase()) || entries.length >= 500) return;
+        seen.add(title.toLowerCase());
+        const p = Number(paid[i]);
+        entries.push(paid[i] != null && Number.isFinite(p) && p >= 0 && p <= 10000 ? { title, paid: p } : { title });
+    });
     if (!entries.length) return { status: "empty", message: "No games to send" };
     let res;
     try {
@@ -106,7 +114,7 @@ async function sendToChecker(token, titles) {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg?.type !== "send-to-checker") return;
     if (sender.id !== chrome.runtime.id) return;
-    sendToChecker(String(msg.token ?? ""), Array.isArray(msg.titles) ? msg.titles : [])
+    sendToChecker(String(msg.token ?? ""), Array.isArray(msg.titles) ? msg.titles : [], Array.isArray(msg.paid) ? msg.paid : [])
         .then(sendResponse)
         .catch(err => sendResponse({ status: "error", message: err.message }));
     return true;
