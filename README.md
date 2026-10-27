@@ -49,6 +49,9 @@ A single **Export ▾** button opens a menu of formats. Any unrevealed keys are 
 | Excel | `.xlsx` | Uses the bundled SheetJS library |
 | Clipboard | n/a | Copies `Game \| Key` lines, no file downloaded |
 
+### 🔑 Batch redeem from the Steam Value Checker dashboard
+With the extension installed (2.3+), the dashboard's **Batch redeem** page (Games menu) can redeem pasted or uploaded Steam keys using your signed-in Steam session. Log into store.steampowered.com first. Keys go page -> extension -> Steam and never reach the dashboard's server.
+
 ### 📤 Send to Steam Value Checker
 One click sends your game titles (**never your keys**) to your library in the [Steam Value Checker](https://steamvaluechecker.fly.dev/) Discord bot, with what you paid for the order. Get a link code once with `/library grabber` in Discord and paste it into the panel. The order total is split evenly across the games on the page, since Fanatical shows one total per order.
 
