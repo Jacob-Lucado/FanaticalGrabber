@@ -119,6 +119,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
     <li>Game titles and keys shown on fanatical.com pages you open.</li>
     <li>Your Steam session cookie (store.steampowered.com), only when you click "Redeem on Steam".</li>
     <li>A local list of keys you've already redeemed, with status and timestamp.</li>
+    <li>If you use "Send to Steam Value Checker": a link code you paste in once, which is kept in your browser.</li>
   </ul>
 
   <h2>How it is used</h2>
@@ -132,7 +133,8 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
     <li>Exports are generated locally in your browser.</li>
     <li>The redeemed-key list is stored locally in your browser (chrome.storage). Removing the extension deletes it.</li>
     <li>Keys are sent to Steam (store.steampowered.com) only when you click Redeem.</li>
-    <li>No data is sent to the developer or to any other third party. The extension has no servers, analytics or advertising, and does not sell or transfer user data.</li>
+    <li>"Send to Steam Value Checker" is optional and only runs when you click it. It sends game titles (never keys) with your link code to steamvaluechecker.fly.dev, the developer's own bot, to add them to your library there. You can turn the link off any time with /library grabber in Discord.</li>
+    <li>Apart from that optional send, no data is sent to the developer or to any other third party. The extension has no servers, analytics or advertising, and does not sell or transfer user data.</li>
   </ul>
 
   <h2>This website</h2>
@@ -143,7 +145,8 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   <h2>Permissions</h2>
   <ul>
     <li><code>clipboardWrite</code>: copy keys when you choose "Copy to clipboard".</li>
-    <li><code>storage</code>: remember which keys were already redeemed.</li>
+    <li><code>storage</code>: remember which keys were already redeemed, and your optional link code.</li>
+    <li><code>steamvaluechecker.fly.dev</code> access: the optional "Send to Steam Value Checker" button.</li>
     <li><code>cookies</code> and <code>store.steampowered.com</code> access: redeem keys on your logged-in Steam account.</li>
     <li><code>fanatical.com</code> access: read and reveal keys on pages you open.</li>
   </ul>

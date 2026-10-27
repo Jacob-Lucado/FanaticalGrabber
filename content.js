@@ -180,12 +180,31 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
         }
     ];
 
+    // ---------- send to Steam Value Checker ----------
+    async function sendToChecker(rows) {
+        let { svcToken } = await chrome.storage.local.get("svcToken");
+        if (!svcToken) {
+            svcToken = (window.prompt("Paste your Steam Value Checker link code.\nGet one in Discord with /library grabber (or on the dashboard's Library page).\nOnly game titles are sent, never keys.") || "").trim();
+            if (!svcToken) return setStatus("Cancelled");
+        }
+        setStatus("Sending titles to Steam Value Checker...", rows.length);
+        const r = await chrome.runtime.sendMessage({ type: "send-to-checker", token: svcToken, titles: rows.map(x => x.title) });
+        if (r?.status === "sent") {
+            await chrome.storage.local.set({ svcToken });
+            return setStatus(`Sent: ${r.added} added, ${r.updated} updated` + (r.notFound ? `, ${r.notFound} not matched` : ""), rows.length);
+        }
+        if (r?.status === "bad_code") await chrome.storage.local.remove("svcToken");
+        setStatus(r?.message || "Could not send", rows.length);
+    }
+
     // ---------- export actions ----------
     function exportAs(formatId) {
         return run("Export", async () => {
             await revealKeys();
             const rows = collectKeys();
             if (!rows.length) return setStatus("No keys found", 0);
+
+            if (formatId === "svc") return sendToChecker(rows);
 
             setStatus(`Exporting ${formatId.toUpperCase()}...`, rows.length);
 
@@ -388,6 +407,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
                     ${menuItem("xlsx", "📊", "Excel (.xlsx)")}
                     <div class="fg-sep"></div>
                     ${menuItem("clipboard", "📋", "Copy to clipboard")}
+                    ${menuItem("svc", "📤", "Send to Steam Value Checker")}
                 </div>
 
                 <button id="fg-reveal">🔓 Reveal All</button>
@@ -451,4 +471,4 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
     }).observe(document.body, { childList: true, subtree: true });
 
     createPanel();
-})();
+})();

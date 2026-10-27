@@ -80,3 +80,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         .catch(err => sendResponse({ status: "error", message: err.message }));
     return true; // keep the channel open for the async response
 });
+// One-click send to the Steam Value Checker bot. Only game titles go out (never keys), with the member's own link code.
+const SVC = "https://steamvaluechecker.fly.dev";
+async function sendToChecker(token, titles) {
+    if (!/^svcg_[A-Za-z0-9_-]{43}$/.test(token)) return { status: "bad_code", message: "That does not look like a link code. Use /library grabber in Discord." };
+    const entries = [...new Set(titles.map(t => String(t).trim()).filter(Boolean))].slice(0, 500).map(title => ({ title }));
+    if (!entries.length) return { status: "empty", message: "No games to send" };
+    let res;
+    try {
+        res = await fetch(`${SVC}/api/grabber/import`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ entries })
+        });
+    } catch {
+        return { status: "network", message: "Could not reach Steam Value Checker" };
+    }
+    let data = {};
+    try { data = await res.json(); } catch { /* not json */ }
+    if (res.status === 401) return { status: "bad_code", message: "That link code is no longer valid. Make a new one with /library grabber." };
+    if (!res.ok) return { status: "error", message: data.error || `Steam Value Checker said HTTP ${res.status}` };
+    return { status: "sent", added: data.added ?? 0, updated: data.updated ?? 0, notFound: data.notFound ?? 0 };
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg?.type !== "send-to-checker") return;
+    if (sender.id !== chrome.runtime.id) return;
+    sendToChecker(String(msg.token ?? ""), Array.isArray(msg.titles) ? msg.titles : [])
+        .then(sendResponse)
+        .catch(err => sendResponse({ status: "error", message: err.message }));
+    return true;
+});

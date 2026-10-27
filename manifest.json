@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FanaticalGrabber",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "Reveal, copy, export and redeem your Fanatical game keys.",
   "permissions": [
     "clipboardWrite",
@@ -9,7 +9,8 @@
     "cookies"
   ],
   "host_permissions": [
-    "https://store.steampowered.com/*"
+    "https://store.steampowered.com/*",
+    "https://steamvaluechecker.fly.dev/*"
   ],
   "background": {
     "service_worker": "background.js"
