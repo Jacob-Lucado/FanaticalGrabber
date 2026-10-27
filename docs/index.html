@@ -117,7 +117,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
     <h1>Your Fanatical keys, revealed, exported and redeemed.</h1>
     <p>A browser extension that adds one panel to your Fanatical orders page. Reveal every key in a click, save them in the format you want, or redeem them on Steam.</p>
     <div class="btns">
-      <a class="btn main" href="https://github.com/Jacob-Lucado/FanaticalGrabber/archive/refs/heads/main.zip">Download v2.1.1</a>
+      <a class="btn main" href="https://github.com/Jacob-Lucado/FanaticalGrabber/archive/refs/heads/main.zip">Download latest (v2.2.1)</a>
       
       <a class="btn alt" href="#features">See what it does</a>
     </div>
@@ -135,6 +135,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
           <button>📄 Text (.txt)</button><button>🧾 CSV (.csv)</button><button>🧩 JSON (.json)</button>
           <button>📝 Markdown (.md)</button><button>🌐 HTML page (.html)</button><button>📊 Excel (.xlsx)</button>
           <button>📋 Copy to clipboard</button>
+          <button id="fgSend" class="send">📤 Send to Steam Value Checker</button>
         </div>
         <button class="b rev" id="fgReveal">🔓 Reveal All</button>
         <button class="b red" id="fgRedeem">🎟️ Redeem on Steam (Beta)</button>
@@ -159,6 +160,10 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
       <p>One Export button opens a menu. Unrevealed keys are revealed first, so nothing is left out.</p>
       <div class="fmts"><span>📄 TXT</span><span>🧾 CSV</span><span>🧩 JSON</span><span>📝 Markdown</span><span>🌐 HTML</span><span>📊 Excel</span><span>📋 Clipboard</span></div>
     </div>
+    <div class="card" style="grid-column:1/-1">
+      <h3>Send to Steam Value Checker <span class="tag">New</span></h3>
+      <p>One click sends your game titles (never your keys) to your library in the <a href="https://steamvaluechecker.fly.dev/" rel="noopener noreferrer" target="_blank">Steam Value Checker</a> Discord bot, with what you paid for the order. Get a link code once with <code>/library grabber</code> in Discord, paste it in the panel, and you're set.</p>
+    </div>
     <div class="card steam" style="grid-column:1/-1">
       <h3>Redeem on Steam <span class="tag">Beta</span></h3>
       <p>Redeems your revealed keys on the Steam account you're logged into at store.steampowered.com.</p>
@@ -180,7 +185,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   
     <p>The extension is installed manually as an unpacked extension. It takes about a minute.</p>
   
-  <p><a class="btn main" href="https://github.com/Jacob-Lucado/FanaticalGrabber/archive/refs/heads/main.zip">Download v2.1.1 (.zip)</a></p>
+  <p><a class="btn main" href="https://github.com/Jacob-Lucado/FanaticalGrabber/archive/refs/heads/main.zip">Download latest (v2.2.1 .zip)</a></p>
   <ol class="steps">
     <li><b>Extract the download</b> to a folder you'll keep. It should contain <code>manifest.json</code>, <code>content.js</code>, <code>background.js</code> and <code>xlsx.full.min.js</code>.</li>
     <li><b>Open your extensions page</b>: <code>chrome://extensions</code>, <code>edge://extensions</code>, <code>brave://extensions</code>, <code>opera://extensions</code> or <code>vivaldi://extensions</code>.</li>
@@ -224,7 +229,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   menu.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     setMenu(false);
-    status.textContent = 'Status: Demo only, install the extension to export';
+    status.textContent = b.id === 'fgSend' ? 'Status: Demo only, install the extension and paste your /library grabber code' : 'Status: Demo only, install the extension to export';
   });
   $('fgReveal').addEventListener('click', () => {
     status.textContent = 'Status: Ready'; count.textContent = 'Keys Revealed: 3 (demo)';

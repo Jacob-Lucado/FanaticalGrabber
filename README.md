@@ -49,6 +49,9 @@ A single **Export ▾** button opens a menu of formats. Any unrevealed keys are 
 | Excel | `.xlsx` | Uses the bundled SheetJS library |
 | Clipboard | n/a | Copies `Game \| Key` lines, no file downloaded |
 
+### 📤 Send to Steam Value Checker
+One click sends your game titles (**never your keys**) to your library in the [Steam Value Checker](https://steamvaluechecker.fly.dev/) Discord bot, with what you paid for the order. Get a link code once with `/library grabber` in Discord and paste it into the panel. The order total is split evenly across the games on the page, since Fanatical shows one total per order.
+
 ### 🎟️ Redeem on Steam (Beta)
 Redeems your **already revealed** keys on the Steam account you're logged into.
 
