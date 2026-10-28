@@ -49,6 +49,14 @@ A single **Export ▾** button opens a menu of formats. Any unrevealed keys are 
 | Excel | `.xlsx` | Uses the bundled SheetJS library |
 | Clipboard | n/a | Copies `Game \| Key` lines, no file downloaded |
 
+### 🎟️ Steam batch redeem panel (new in 2.4)
+On Steam itself the extension becomes a batch redeem tool with a Steam-style panel. On **store.steampowered.com/account/registerkey** it sits right under the form, and on every other Steam store page it is a small green **Batch redeem** tab.
+- Paste keys (any text, they are picked out for you) or open a `.txt` file, check the login banner, and press **Redeem all**
+- **Queue for the Steam batch redeem** in the Fanatical export menu hands your revealed keys to this panel through the extension's own storage, so keys never go to any server
+- Optional **Skip games I already own**, matched by exact title for keys that came from Fanatical
+- Live progress, a per-key result list and a CSV report; stops on a Steam login problem or rate limit
+- **Price overlay** on Steam game pages: paste your Steam Value Checker link code in the panel and a card shows your best price, the all-time low and whether you own or wishlisted the game. Only the app number is sent.
+
 ### 🔑 Batch redeem from the Steam Value Checker dashboard
 With the extension installed (2.3+), the dashboard's **Batch redeem** page (Games menu) can redeem pasted or uploaded Steam keys using your signed-in Steam session. Log into store.steampowered.com first. Keys go page -> extension -> Steam and never reach the dashboard's server.
 
@@ -158,7 +166,7 @@ Possible statuses in the report:
 | `clipboardWrite` | Copy keys when you choose "Copy to clipboard" |
 | `storage` | Remember which keys were already redeemed (stored locally) |
 | `cookies` | Read your Steam `sessionid` to redeem keys on your account |
-| `https://store.steampowered.com/*` | Send redeem requests to Steam |
+| `https://store.steampowered.com/*` | Send redeem requests to Steam, show the batch redeem panel and read which games your account owns |
 | `https://www.fanatical.com/*`, `https://fanatical.com/*` | Run on Fanatical pages to reveal and read keys |
 
 **Privacy summary**

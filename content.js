@@ -240,6 +240,16 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
             if (!rows.length) return setStatus("No keys found", 0);
 
             if (formatId === "svc") return sendToChecker(rows);
+            if (formatId === "queue") {
+                // Keys stay in this browser: they are handed to the Steam panel through extension storage, never to a server.
+                const steamRows = rows.filter(r => STEAM_KEY_RE.test(r.key.trim()));
+                if (!steamRows.length) return setStatus("No Steam-format keys to queue", rows.length);
+                const { pendingKeys = [] } = await chrome.storage.local.get("pendingKeys");
+                const have = new Set(pendingKeys.map(x => x.key));
+                const merged = [...pendingKeys, ...steamRows.filter(r => !have.has(r.key.toUpperCase())).map(r => ({ key: r.key.trim().toUpperCase(), title: r.title }))].slice(0, 500);
+                await chrome.storage.local.set({ pendingKeys: merged });
+                return setStatus(`Queued ${steamRows.length} key${steamRows.length === 1 ? "" : "s"}. Open Steam's Activate a Product page to redeem them all`, rows.length);
+            }
 
             setStatus(`Exporting ${formatId.toUpperCase()}...`, rows.length);
 
@@ -442,6 +452,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
                     ${menuItem("xlsx", "📊", "Excel (.xlsx)")}
                     <div class="fg-sep"></div>
                     ${menuItem("clipboard", "📋", "Copy to clipboard")}
+                    ${menuItem("queue", "⏩", "Queue for the Steam batch redeem")}
                     ${menuItem("svc", "📤", "Send to Steam Value Checker")}
                 </div>
 
@@ -506,4 +517,4 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
     }).observe(document.body, { childList: true, subtree: true });
 
     createPanel();
-})();
+})();

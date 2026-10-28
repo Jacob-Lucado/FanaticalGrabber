@@ -119,3 +119,58 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         .catch(err => sendResponse({ status: "error", message: err.message }));
     return true;
 });
+
+
+// ---------- Steam page helpers (batch redeem panel and price overlay) ----------
+async function sessionCheck() {
+    try {
+        const c = await chrome.cookies.get({ url: STEAM, name: "steamLoginSecure" });
+        return { loggedIn: Boolean(c?.value) };
+    } catch { return { loggedIn: false }; }
+}
+
+const normTitle = s => String(s).toLowerCase().replace(/[\u2122\u00ae\u00a9]/g, "").replace(/\b(steam|key|pc|digital)\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+
+/** Which of these game titles does the logged-in Steam account already own? Exact title matches only; anything unsure comes back null. */
+async function checkOwned(titles) {
+    let owned;
+    try {
+        const r = await fetch(`${STEAM}/dynamicstore/userdata/`, { credentials: "include" });
+        owned = new Set((await r.json()).rgOwnedApps || []);
+    } catch { return { error: "Could not read your Steam library" }; }
+    if (!owned.size) return { error: "Steam did not return your library. Are you logged in?" };
+    const out = {};
+    for (const title of titles.slice(0, 60)) {
+        let appid = null;
+        try {
+            const r = await fetch(`${STEAM}/api/storesearch/?term=${encodeURIComponent(title)}&l=english&cc=us`, { credentials: "omit" });
+            const hit = ((await r.json()).items || []).find(i => normTitle(i.name) === normTitle(title));
+            appid = hit ? hit.id : null;
+        } catch { /* leave unknown */ }
+        out[title] = appid === null ? null : owned.has(appid);
+        await new Promise(r => setTimeout(r, 350));
+    }
+    return { owned: out };
+}
+
+async function gameInfo(appid) {
+    const { svcToken } = await chrome.storage.local.get("svcToken");
+    if (!svcToken) return { status: "no_code" };
+    let res;
+    try { res = await fetch(`${SVC}/api/grabber/game?appid=${encodeURIComponent(appid)}`, { headers: { Authorization: `Bearer ${svcToken}` } }); }
+    catch { return { status: "network" }; }
+    if (res.status === 401) return { status: "bad_code" };
+    if (!res.ok) return { status: "error" };
+    return { status: "ok", ...(await res.json()) };
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (sender.id !== chrome.runtime.id) return;
+    const job = msg?.type === "session-check" ? sessionCheck()
+        : msg?.type === "check-owned" ? checkOwned(Array.isArray(msg.titles) ? msg.titles.map(String) : [])
+        : msg?.type === "game-info" ? gameInfo(Number(msg.appid))
+        : null;
+    if (!job) return;
+    job.then(sendResponse).catch(err => sendResponse({ status: "error", message: err.message }));
+    return true;
+});

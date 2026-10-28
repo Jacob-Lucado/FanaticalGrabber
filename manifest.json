@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "FanaticalGrabber",
-  "version": "2.3.0",
-  "description": "Reveal, copy, export and redeem your Fanatical game keys.",
+  "version": "2.4.0",
+  "description": "Reveal, export and batch-redeem your game keys. Adds a Steam-style batch redeem panel on Steam.",
   "permissions": [
     "clipboardWrite",
     "storage",
@@ -25,6 +25,11 @@
         "xlsx.full.min.js",
         "content.js"
       ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://store.steampowered.com/*"],
+      "js": ["steam.js"],
       "run_at": "document_idle"
     },
     {
