@@ -33,6 +33,11 @@
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+html[data-theme=steam]{--bg:#0f1724;--panel:#162134;--raise:#1b2a40;--line:#27384f;--text:#f4f8fd;--mute:#a3b3c8;--orange:#4da3ff;--steam:#7fb8ff}
+html[data-theme=steam] .btn.main,html[data-theme=steam] .tag,html[data-theme=steam] .demo-tabs button[aria-selected=true]{color:#04101f}
+html[data-theme=steam] .card.steam{border-color:rgba(77,163,255,.35);background:linear-gradient(135deg,rgba(77,163,255,.12),rgba(124,108,255,.12))}
+body,header.top,section,.card,details,.btn{transition:background-color .4s,border-color .4s,color .4s}
+@media(prefers-reduced-motion:reduce){body,header.top,section,.card,details,.btn{transition:none}}
 a{color:var(--orange)}
 a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--steam);outline-offset:2px}
 .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
@@ -317,6 +322,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   document.querySelectorAll('.demo-tabs button').forEach(b => b.addEventListener('click', () => {
     document.querySelectorAll('.demo-tabs button').forEach(x => x.setAttribute('aria-selected', x === b));
     for (const k in panes) panes[k].hidden = k !== b.dataset.demo;
+    document.documentElement.dataset.theme = b.dataset.demo === 'steam' ? 'steam' : '';
   }));
 
   // Steam demo: a pretend redeem with made-up keys. Nothing is sent anywhere.
