@@ -76,6 +76,8 @@ code{background:var(--raise);padding:2px 6px;border-radius:5px;font:14px Consola
 .menu.open{display:block}
 .menu button{display:block;width:100%;background:none;border:0;border-bottom:1px solid #333;color:#eee;text-align:left;padding:9px 12px;font:600 14px inherit;font-family:inherit;cursor:pointer}
 .menu button:hover{background:#3a3a3a}
+.menu .parent{color:#ffb74d}
+.menu .sub{display:none;background:#202020}.menu .sub.open{display:block}.menu .sub button{padding-left:26px;font-weight:500}
 .menu button:last-child{border-bottom:0}
 .fg-x{display:block;text-align:center;background:var(--x);color:#fff;padding:10px;border-radius:6px;font-weight:700;font-size:14px;margin-bottom:10px}
 .fg-foot{text-align:center;font-size:11px;color:#bbb}
@@ -107,6 +109,10 @@ code{background:var(--raise);padding:2px 6px;border-radius:5px;font:14px Consola
 .sg-list code{background:none;padding:0;color:#8396ad;font-size:12px}
 .sg-chip{font-size:11px;font-weight:700;padding:2px 9px;border-radius:99px}
 .sg-chip.redeemed{background:rgba(61,220,151,.2);color:#3ddc97}.sg-chip.owned{background:rgba(77,163,255,.2);color:#4da3ff}.sg-chip.used,.sg-chip.invalid{background:rgba(255,107,107,.2);color:#ff6b6b}
+.sg-chk{display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:12px;color:#8396ad;line-height:1.4}
+.sg-chk input{margin-top:2px;accent-color:#4da3ff}
+.sg-foot{margin-top:12px;font-size:11px;color:#8396ad;line-height:1.45}
+.sg-chip.skipped{background:rgba(255,255,255,.1);color:#a3b3c8}
 .sg-sum{margin-top:10px;font-size:13px;color:#f4f8fd}
 .hint{text-align:center;font-size:13px;margin:14px 0 0;color:var(--mute);max-width:none}
 
@@ -173,9 +179,13 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
         <div class="fg-stat" id="fgCount">Keys Revealed: 0</div>
         <button class="b exp" id="fgExport" aria-expanded="false">🚀 Export ▾</button>
         <div class="menu" id="fgMenu">
-          <button>📄 Text (.txt)</button><button>🧾 CSV (.csv)</button><button>🧩 JSON (.json)</button>
-          <button>📝 Markdown (.md)</button><button>🌐 HTML page (.html)</button><button>📊 Excel (.xlsx)</button>
+          <button id="fgFiles" class="parent" aria-expanded="false">💾 Save as file ▾</button>
+          <div class="sub" id="fgSub">
+            <button>📄 Text (.txt)</button><button>🧾 CSV (.csv)</button><button>🧩 JSON (.json)</button>
+            <button>📝 Markdown (.md)</button><button>🌐 HTML page (.html)</button><button>📊 Excel (.xlsx)</button>
+          </div>
           <button>📋 Copy to clipboard</button>
+          <button>⏩ Queue for the Steam batch redeem</button>
           <button id="fgSend" class="send">📤 Send to Steam Value Checker</button>
         </div>
         <button class="b rev" id="fgReveal">🔓 Reveal All</button>
@@ -192,12 +202,15 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
         <div class="sg-panel">
           <button class="sg-head" id="sgHead" title="Click to minimise"><span>Batch Redeem<small>v2.5.0</small></span><span aria-hidden="true">–</span></button>
           <div class="sg-body">
-            <div class="sg-banner" id="sgBanner">You're logged into Steam. Keys will be redeemed on this account.</div>
+            <div class="sg-banner info" id="sgBanner">Make sure you're logged into the Steam account you want the games on. Keys are redeemed one at a time, about 3 seconds apart, using your signed-in session.</div>
             <textarea id="sgBox" spellcheck="false" placeholder="Paste Steam keys here, one per line or mixed in with other text. Format: AAAAA-BBBBB-CCCCC" aria-label="Steam keys"></textarea>
-            <div class="sg-row"><button class="go" id="sgGo">Redeem all</button><button id="sgFill">Try sample keys</button><span class="sg-count" id="sgCount"></span></div>
+            <div class="sg-row"><button class="go" id="sgGo">Redeem all</button><button id="sgStop" hidden>Stop</button><button id="sgFile">Open a .txt file</button><button id="sgQueue">Load keys from Fanatical</button><span class="sg-count" id="sgCount"></span></div>
+            <label class="sg-chk"><input type="checkbox" id="sgSkip"> Skip games I already own (only for keys loaded from Fanatical)</label>
             <div class="sg-bar2"><i id="sgProg"></i></div>
             <div class="sg-list" id="sgList" hidden></div>
             <div class="sg-sum" id="sgSum" hidden></div>
+            <div class="sg-row"><button id="sgReport" hidden>Download report</button></div>
+            <div class="sg-foot">Keys never leave your browser except to Steam. Already-handled keys are remembered and skipped. (This demo is pretend.)</div>
           </div>
         </div>
       </div>
@@ -295,7 +308,9 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   const $ = id => document.getElementById(id);
   const fg = $('fg'), head = $('fgHead'), menu = $('fgMenu'), exp = $('fgExport');
   const status = $('fgStatus'), count = $('fgCount');
-  const setMenu = o => { menu.classList.toggle('open', o); exp.setAttribute('aria-expanded', o); };
+  const sub = $('fgSub'), files = $('fgFiles');
+  const setSub = o => { sub.classList.toggle('open', o); files.setAttribute('aria-expanded', o); files.textContent = o ? '💾 Save as file ▴' : '💾 Save as file ▾'; };
+  const setMenu = o => { if (!o) setSub(false); menu.classList.toggle('open', o); exp.setAttribute('aria-expanded', o); };
 
   head.addEventListener('click', () => {
     const closed = fg.classList.toggle('closed');
@@ -305,8 +320,9 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   exp.addEventListener('click', () => setMenu(!menu.classList.contains('open')));
   menu.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b === files) { setSub(!sub.classList.contains('open')); return; }
     setMenu(false);
-    status.textContent = b.id === 'fgSend' ? 'Status: Demo only, install the extension and paste your /library grabber code' : 'Status: Demo only, install the extension to export';
+    status.textContent = b.id === 'fgSend' ? 'Status: Demo only, install the extension and paste your /library grabber code' : (b.textContent.includes('Queue') ? 'Status: Demo only, the real one queues your keys for Steam' : 'Status: Demo only, install the extension to export');
   });
   $('fgReveal').addEventListener('click', () => {
     status.textContent = 'Status: Ready'; count.textContent = 'Keys Revealed: 3 (demo)';
@@ -333,27 +349,36 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
   $('sgHead').addEventListener('click', () => toggle(false));
   const keys = () => [...new Set((sgBox.value.toUpperCase().match(KEY) || []))];
   sgBox.addEventListener('input', () => { const n = keys().length; sgCount.textContent = n ? n + ' key' + (n === 1 ? '' : 's') + ' found' : ''; });
-  $('sgFill').addEventListener('click', () => { sgBox.value = 'K7M2Q-9XW4D-LT83B\nH5R6N-2PC8Z-VY4JA\nF3G9S-W7E1M-QD62X\nB8T4K-5NH3C-RZ9UP\nY2L6V-D4A8J-X7S5E'; sgBox.dispatchEvent(new Event('input')); });
+  const SAMPLE = 'K7M2Q-9XW4D-LT83B\nH5R6N-2PC8Z-VY4JA\nF3G9S-W7E1M-QD62X\nB8T4K-5NH3C-RZ9UP\nY2L6V-D4A8J-X7S5E';
+  const fill = () => { sgBox.value = SAMPLE; sgBox.dispatchEvent(new Event('input')); };
+  $('sgQueue').addEventListener('click', () => { fill(); sgBanner.className = 'sg-banner info'; sgBanner.textContent = 'Loaded 5 unredeemed keys from your Fanatical orders (pretend ones, of course).'; });
+  $('sgFile').addEventListener('click', () => { fill(); sgBanner.className = 'sg-banner info'; sgBanner.textContent = 'The real button opens a .txt file from your computer. Here it just fills in a few sample keys.'; });
   const OUTCOME = ['redeemed', 'owned', 'redeemed', 'used', 'redeemed', 'invalid'];
-  let running = false;
+  let running = false, stopNow = false, results = [];
+  $('sgStop').addEventListener('click', () => { stopNow = true; });
+  $('sgReport').addEventListener('click', () => {
+    const csv = 'key,result\n' + results.map(r => r.join(',')).join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'steam_redeem_demo.csv'; a.click(); URL.revokeObjectURL(a.href);
+  });
   sgGo.addEventListener('click', async () => {
     if (running) return;
     const list = keys();
-    if (!list.length) { sgBanner.className = 'sg-banner info'; sgBanner.textContent = 'Paste a few keys first, or tap Try sample keys. Anything that looks like AAAAA-BBBBB-CCCCC works here.'; return; }
-    running = true; sgGo.disabled = true; sgList.hidden = false; sgList.textContent = ''; sgSum.hidden = true;
+    if (!list.length) { sgBanner.className = 'sg-banner info'; sgBanner.textContent = 'Paste a few keys first, or tap Load keys from Fanatical. Anything that looks like AAAAA-BBBBB-CCCCC works here.'; return; }
+    running = true; stopNow = false; results = []; sgGo.hidden = true; $('sgStop').hidden = false; $('sgReport').hidden = true; sgProg.style.width = '0'; sgList.hidden = false; sgList.textContent = ''; sgSum.hidden = true;
     sgBanner.className = 'sg-banner'; sgBanner.textContent = 'Just a demo, so nothing goes to Steam. The real one takes about 3 seconds per key.';
     const tally = {};
     for (let i = 0; i < list.length; i++) {
       await new Promise(r => setTimeout(r, 450));
-      const st = OUTCOME[i % OUTCOME.length]; tally[st] = (tally[st] || 0) + 1;
+      if (stopNow) break;
+      let st = OUTCOME[i % OUTCOME.length]; if (st === 'owned' && $('sgSkip').checked) st = 'skipped'; results.push([list[i], st]); tally[st] = (tally[st] || 0) + 1;
       const row = document.createElement('div'), code = document.createElement('code'), chip = document.createElement('span');
       code.textContent = list[i]; chip.className = 'sg-chip ' + st; chip.textContent = st;
       row.append(code, chip); sgList.append(row);
       sgProg.style.width = Math.round((i + 1) / list.length * 100) + '%';
     }
     sgSum.hidden = false;
-    sgSum.textContent = ['redeemed', 'owned', 'used', 'invalid'].map(k => (tally[k] || 0) + ' ' + k).join(', ') + '. (Made-up results, just for show.)';
-    running = false; sgGo.disabled = false;
+    sgSum.textContent = (stopNow ? 'Stopped. ' : '') + ['redeemed', 'owned', 'used', 'invalid', 'skipped'].map(k => (tally[k] || 0) + ' ' + k).join(', ') + '. (Made-up results, just for show.)';
+    running = false; sgGo.hidden = false; $('sgStop').hidden = true; $('sgReport').hidden = false;
   });
 })();
 
