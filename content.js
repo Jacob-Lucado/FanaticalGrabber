@@ -407,13 +407,19 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
     // ---------- drag to move ----------
     // Drag the bar or header to move the panel. The spot is remembered as the distance from the bottom-right corner, so the
     // panel keeps opening upward and leftward from where you put it. A tiny movement is still a click.
-    function makeMovable(targets, handles, key) {
+    function makeMovable(targets, handles, key, startParked) {
         const apply = (r, b) => targets.forEach(t => { t.style.right = r + "px"; t.style.bottom = b + "px"; t.style.left = "auto"; t.style.top = "auto"; });
         const clamp = (t, r, b) => { const w = t.offsetWidth || 260, h = t.offsetHeight || 44;
             return [Math.max(0, Math.min(window.innerWidth - w, r)), Math.max(0, Math.min(window.innerHeight - h, b))]; };
-        let pos = null;
-        const place = () => { if (!pos) return; const [r, b] = clamp(targets.find(t => t.offsetWidth) || targets[0], pos[0], pos[1]); apply(r, b); };
+        let pos = null, parked = !!startParked;
+        // While minimised the bar sits at its default corner; the saved spot is only used when it is open.
+        const place = () => { if (!pos || parked) return; const [r, b] = clamp(targets.find(t => t.offsetWidth) || targets[0], pos[0], pos[1]); apply(r, b); };
         try { chrome.storage.local.get(key).then(v => { if (Array.isArray(v[key])) { pos = v[key]; place(); } }).catch(() => {}); } catch { /* storage is optional */ }
+        place.park = on => {
+            parked = on;
+            if (on) targets.forEach(t => { t.style.right = ""; t.style.bottom = ""; t.style.left = ""; t.style.top = ""; });
+            else place();
+        };
         window.addEventListener("resize", place);
         let wasDrag = false;
         for (const handle of handles) {
@@ -428,7 +434,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
                     const dx = ev.clientX - sx, dy = ev.clientY - sy;
                     if (!moved && Math.hypot(dx, dy) < 5) return;
                     moved = true;
-                    const [r, b] = clamp(t, r0 - dx, b0 - dy); pos = [r, b]; apply(r, b);
+                    const [r, b] = clamp(t, r0 - dx, b0 - dy); pos = [r, b]; parked = false; apply(r, b);
                 };
                 const up = () => {
                     window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
@@ -546,13 +552,13 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
             exportBtn.setAttribute("aria-expanded", String(open));
         };
 
-        const place = makeMovable([panel], [header], "fgPosFanatical");
+        const place = makeMovable([panel], [header], "fgPosFanatical", true);
         header.title = "Click to open or close. Drag to move.";
         header.addEventListener("click", () => {
             const open = body.style.display === "block";
             body.style.display = open ? "none" : "block";
             header.classList.toggle("collapsed", open);
-            place();
+            place.park(open);
             if (open) setMenu(false);
         });
 
