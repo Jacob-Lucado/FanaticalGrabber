@@ -1,4 +1,4 @@
-// On Steam's own pages this turns the extension into a Steam batch redeem tool, in a Steam-style panel.
+// On Steam's own pages this turns the extension into a Steam batch redeem tool, in a clean, modern panel.
 // Keys go page -> extension -> Steam only. Nothing here sends a key to any server.
 (() => {
     "use strict";
@@ -24,62 +24,68 @@
     const CSS = `
     :host { all: initial; }
     [hidden] { display: none !important; }
-    * { box-sizing: border-box; font-family: "Motiva Sans", Arial, Helvetica, sans-serif; }
-    .tab { position: fixed; right: 18px; bottom: 18px; z-index: 2147483646; display: flex; align-items: center; gap: 8px;
-        padding: 10px 16px; border: 1px solid #4c6b22; border-radius: 3px; cursor: pointer; color: #d2efa9; font-size: 14px;
-        background: linear-gradient(to right, #75b022 5%, #588a1b 95%); box-shadow: 0 2px 12px rgba(0,0,0,.5); }
-    .tab:hover { filter: brightness(1.12); }
-    .panel { position: fixed; right: 18px; bottom: 18px; z-index: 2147483647; width: min(440px, calc(100vw - 24px)); max-height: calc(100vh - 36px);
-        display: none; flex-direction: column; color: #c7d5e0; background: #1b2838; border: 1px solid #000; box-shadow: 0 6px 28px rgba(0,0,0,.65); }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    :host { --bg: #fff; --fg: #212529; --muted: #6c757d; --line: #dee2e6; --soft: #f8f9fa; --input: #fff; --primary: #0d6efd; --primary-h: #0b5ed7;
+        --ok: #198754; --ok-h: #157347; --danger: #dc3545; --shadow: 0 .5rem 1.5rem rgba(0,0,0,.25); }
+    @media (prefers-color-scheme: dark) { :host { --bg: #212529; --fg: #dee2e6; --muted: #9aa5b1; --line: #3d444b; --soft: #2b3035; --input: #1a1d20;
+        --primary: #3d8bfd; --primary-h: #6ea8fe; --ok: #20a56a; --ok-h: #3bbf84; --shadow: 0 .5rem 1.5rem rgba(0,0,0,.6); } }
+    .tab { position: fixed; right: 18px; bottom: 18px; z-index: 2147483646; display: flex; align-items: center; gap: 8px; padding: 9px 18px;
+        border: 0; border-radius: 999px; cursor: pointer; color: #fff; font-size: 14px; font-weight: 500; background: var(--primary); box-shadow: var(--shadow); }
+    .tab:hover { background: var(--primary-h); }
+    .panel { position: fixed; right: 18px; bottom: 18px; z-index: 2147483647; width: min(460px, calc(100vw - 24px)); max-height: calc(100vh - 36px);
+        display: none; flex-direction: column; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; }
     .panel.open { display: flex; }
-    .panel.page { position: static; width: 100%; max-height: none; margin: 16px 0; box-shadow: none; border-color: #2a475e; }
-    header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; color: #fff;
-        background: linear-gradient(to right, #2a475e, #1b2838); border-bottom: 1px solid #000; }
-    header b { font-size: 15px; letter-spacing: .03em; text-transform: uppercase; font-weight: 600; }
-    header small { color: #8ba4b6; margin-left: 8px; font-size: 11px; }
-    .x { background: none; border: 0; color: #8ba4b6; font-size: 20px; cursor: pointer; line-height: 1; }
-    .x:hover { color: #fff; }
-    .body { padding: 14px; overflow: auto; }
-    .banner { padding: 8px 10px; font-size: 13px; margin-bottom: 10px; border-left: 3px solid #66c0f4; background: rgba(102,192,244,.1); }
-    .banner.ok { border-color: #a4d007; background: rgba(164,208,7,.1); color: #d2efa9; }
-    .banner.bad { border-color: #c0392b; background: rgba(192,57,43,.15); color: #ffb4a8; }
-    .banner.warn { border-color: #e2a400; background: rgba(226,164,0,.12); color: #f5deb3; }
-    textarea { width: 100%; height: 110px; resize: vertical; padding: 8px; color: #fff; font: 13px Consolas, monospace;
-        background: rgba(0,0,0,.35); border: 1px solid #000; border-radius: 2px; box-shadow: 0 1px 0 rgba(255,255,255,.08); }
-    textarea:focus, input[type=text]:focus { outline: 1px solid #66c0f4; }
-    input[type=text] { width: 100%; padding: 6px 8px; color: #fff; background: rgba(0,0,0,.35); border: 1px solid #000; border-radius: 2px; font-size: 13px; }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
-    button.b { padding: 7px 14px; border-radius: 2px; border: 0; cursor: pointer; font-size: 13px; color: #67c1f5;
-        background: rgba(103,193,245,.2); }
-    button.b:hover:not(:disabled) { background: rgba(103,193,245,.35); color: #fff; }
-    button.b.go { color: #d2efa9; background: linear-gradient(to right, #75b022 5%, #588a1b 95%); }
-    button.b.go:hover:not(:disabled) { filter: brightness(1.15); }
-    button.b.stop { color: #fff; background: #a33a2f; }
-    button.b:disabled { opacity: .5; cursor: default; }
-    label.chk { display: flex; gap: 6px; align-items: center; font-size: 12px; color: #8ba4b6; margin-top: 10px; }
-    .count { margin-left: auto; font-size: 12px; color: #8ba4b6; }
-    .bar { height: 6px; margin-top: 12px; background: rgba(0,0,0,.4); border-radius: 3px; overflow: hidden; }
-    .bar i { display: block; height: 100%; width: 0; background: linear-gradient(to right, #66c0f4, #a4d007); transition: width .2s; }
-    .list { margin-top: 10px; max-height: 220px; overflow: auto; border-top: 1px solid #000; }
-    .item { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 6px 2px; font-size: 12px; border-bottom: 1px solid rgba(0,0,0,.5); }
-    .item code { color: #8ba4b6; font-family: Consolas, monospace; }
-    .item span.g { grid-column: 1 / 3; color: #fff; }
-    .chip { font-size: 11px; padding: 1px 7px; border-radius: 2px; color: #fff; background: #4b5b69; }
-    .chip.redeemed { background: #4c6b22; } .chip.owned, .chip.skipped { background: #2a475e; }
-    .chip.used, .chip.invalid, .chip.error, .chip.region, .chip.needs_base { background: #8a3a30; }
-    .chip.rate_limited, .chip.not_logged_in { background: #8a6a10; }
-    .sum { margin-top: 10px; font-size: 13px; color: #fff; }
-    .foot { margin-top: 12px; font-size: 11px; color: #5c7080; }
-    details { margin-top: 12px; font-size: 12px; color: #8ba4b6; } summary { cursor: pointer; }
-    .card { position: fixed; left: 18px; bottom: 18px; z-index: 2147483646; width: 250px; padding: 12px; color: #c7d5e0; font-size: 13px;
-        background: linear-gradient(#1b2838, #16202d); border: 1px solid #000; box-shadow: 0 4px 20px rgba(0,0,0,.6); }
-    .card h4 { margin: 0 0 6px; color: #fff; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-    .card .big { font-size: 22px; color: #beee11; }
-    .card .tag { display: inline-block; margin: 0 4px 6px 0; padding: 1px 7px; font-size: 11px; color: #d2efa9; background: #4c6b22; border-radius: 2px; }
-    .card .tag.w { background: #2a475e; color: #67c1f5; }
+    .panel.page { position: static; width: 100%; max-height: none; margin: 16px 0; box-shadow: 0 .125rem .5rem rgba(0,0,0,.15); }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+    header b { font-size: 17px; font-weight: 600; color: var(--fg); }
+    header small { color: var(--muted); margin-left: 8px; font-size: 12px; font-weight: 400; }
+    .x { background: none; border: 0; color: var(--muted); font-size: 22px; cursor: pointer; line-height: 1; padding: 2px 6px; border-radius: 6px; }
+    .x:hover { color: var(--fg); background: var(--soft); }
+    .body { padding: 18px; overflow: auto; }
+    .banner { padding: 10px 14px; font-size: 14px; margin-bottom: 12px; border: 1px solid #9eeaf9; border-radius: 6px; background: #cff4fc; color: #055160; }
+    .banner.ok { border-color: #a3cfbb; background: #d1e7dd; color: #0a3622; }
+    .banner.bad { border-color: #f1aeb5; background: #f8d7da; color: #58151c; }
+    .banner.warn { border-color: #ffe69c; background: #fff3cd; color: #664d03; }
+    textarea { width: 100%; height: 120px; resize: vertical; padding: 10px 12px; color: var(--fg); font: 13px ui-monospace, SFMono-Regular, Consolas, monospace;
+        background: var(--input); border: 1px solid var(--line); border-radius: 6px; }
+    input[type=text] { width: 100%; padding: 8px 12px; color: var(--fg); background: var(--input); border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
+    textarea:focus, input[type=text]:focus { outline: 0; border-color: #86b7fe; box-shadow: 0 0 0 .25rem rgba(13,110,253,.25); }
+    @media (prefers-color-scheme: dark) { .banner { border-color: #087990; background: #032830; color: #6edff6; } .banner.ok { border-color: #0f5132; background: #051b11; color: #75b798; }
+        .banner.bad { border-color: #842029; background: #2c0b0e; color: #ea868f; } .banner.warn { border-color: #997404; background: #332701; color: #ffda6a; } }
+    ::placeholder { color: var(--muted); opacity: .85; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+    button.b { padding: 7px 16px; border-radius: 6px; border: 1px solid var(--primary); cursor: pointer; font-size: 14px; font-weight: 500; color: var(--primary); background: transparent;
+        transition: background .12s, color .12s; }
+    button.b:hover:not(:disabled) { background: var(--primary); color: #fff; }
+    button.b.go { border-color: var(--ok); color: #fff; background: var(--ok); }
+    button.b.go:hover:not(:disabled) { background: var(--ok-h); border-color: var(--ok-h); }
+    button.b.stop { border-color: var(--danger); color: #fff; background: var(--danger); }
+    button.b:disabled { opacity: .55; cursor: default; }
+    label.chk { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); margin-top: 12px; }
+    .count { margin-left: auto; font-size: 13px; color: var(--muted); }
+    .bar { height: 8px; margin-top: 14px; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+    .bar i { display: block; height: 100%; width: 0; background: var(--primary); transition: width .2s; }
+    .list { margin-top: 12px; max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+    .item { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid var(--line); }
+    .item:last-child { border-bottom: 0; }
+    .item code { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .item span.g { grid-column: 1 / 3; color: var(--fg); }
+    .chip { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; color: #fff; background: #6c757d; }
+    .chip.redeemed { background: var(--ok); } .chip.owned, .chip.skipped { background: #0dcaf0; color: #052c65; }
+    .chip.used, .chip.invalid, .chip.error, .chip.region, .chip.needs_base { background: var(--danger); }
+    .chip.rate_limited, .chip.not_logged_in { background: #ffc107; color: #000; }
+    .sum { margin-top: 12px; font-size: 14px; color: var(--fg); }
+    .foot { margin-top: 14px; font-size: 12px; color: var(--muted); }
+    details { margin-top: 14px; font-size: 13px; color: var(--muted); } summary { cursor: pointer; }
+    .card { position: fixed; left: 18px; bottom: 18px; z-index: 2147483646; width: 260px; padding: 14px; color: var(--fg); font-size: 14px;
+        background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+    .card h4 { margin: 0 0 8px; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .card .big { font-size: 24px; font-weight: 600; color: var(--ok); }
+    .card .tag { display: inline-block; margin: 0 4px 6px 0; padding: 2px 9px; font-size: 11px; font-weight: 600; color: #fff; background: var(--ok); border-radius: 999px; }
+    .card .tag.w { background: var(--primary); }
     .card .x { float: right; }
-    .card.wide { width: 320px; } .card .line { margin: 4px 0; line-height: 1.35; }
-    .card.ok { border-color: #4c6b22; } .card.bad { border-color: #8a3a30; }
+    .card.wide { width: 330px; } .card .line { margin: 4px 0; line-height: 1.4; }
+    .card.ok { border-color: var(--ok); } .card.bad { border-color: var(--danger); }
     `;
 
     const host = el("div", { id: "fg-steam-host" });
