@@ -80,7 +80,11 @@ Redeems your **already revealed** keys on the Steam account you're logged into.
 
 FanaticalGrabber works on Chromium-based browsers: **Chrome, Edge, Brave, Opera, Vivaldi, Arc**. Firefox and Safari are not supported.
 
-The extension is installed as an unpacked extension:
+### Chrome Web Store (easiest)
+**[Add FanaticalGrabber from the Chrome Web Store](https://chromewebstore.google.com/detail/fanaticalgrabber/kmbpdeglijkfbkifilcckkeljagcdbnb)**. It updates by itself. Brave, Opera and Vivaldi can install from the Web Store too; Edge asks you to allow extensions from other stores first.
+
+### Manual install (.zip)
+The **Download ZIP** from this repository is always the latest version. The Web Store copy updates after each review, so the ZIP can be a little ahead. It is installed as an unpacked extension:
 
 1. **Download** the project: click **Code → Download ZIP** at the top of this repository, then extract it to a folder you'll keep.
 2. Open your browser's extensions page:
@@ -100,6 +104,8 @@ The extension is installed as an unpacked extension:
 > Keep the folder somewhere permanent. If you move or delete it, the extension stops working.
 
 ### 🔄 Updating
+Web Store installs update by themselves. For the ZIP:
+
 1. Replace the old files with the new ones, overwriting everything.
 2. On your extensions page, click **Reload** on FanaticalGrabber.
 3. Hard-refresh the Fanatical tab with `Ctrl + Shift + R`.
@@ -255,7 +261,7 @@ The selectors that read the Fanatical page (`input[aria-label="reveal-key"]`, `a
 - [ ] Selective export (choose specific games)
 - [ ] Options page (clipboard behavior, delay, filename format)
 - [ ] Shadow DOM for the panel to isolate styles
-- [ ] Chrome Web Store release
+- [x] Chrome Web Store release
 
 Have an idea? Open an [issue](../../issues) or message [@twit_user69](https://x.com/twit_user69).
 
