@@ -467,6 +467,10 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
             border-radius: 0; font-weight: 600; padding: 9px 12px; border-bottom: 1px solid #333; }
         #fg-menu button.fg-item:last-child { border-bottom: none; }
         #fg-menu button.fg-item:hover:not(:disabled) { background: #3a3a3a; }
+        #fg-sub { display: none; background: #202020; }
+        #fg-sub.open { display: block; }
+        #fg-sub button.fg-item { padding-left: 26px; font-weight: 500; }
+        #fg-menu .fg-parent { color: #ffb74d; }
         #fg-menu .fg-sep { height: 1px; background: #555; }
 
         #fg-twitter { display: block; text-align: center; text-decoration: none; background: #1DA1F2; color: #fff;
@@ -500,8 +504,11 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
 
                 <button id="fg-export" aria-haspopup="true" aria-expanded="false">🚀 Export ▾</button>
                 <div id="fg-menu" role="menu">
-                    ${FORMATS.map(f => menuItem(f.id, f.icon, f.label)).join("")}
-                    ${menuItem("xlsx", "📊", "Excel (.xlsx)")}
+                    <button class="fg-item fg-parent" id="fg-files" aria-expanded="false">💾 Save as file ▾</button>
+                    <div id="fg-sub">
+                        ${FORMATS.map(f => menuItem(f.id, f.icon, f.label)).join("")}
+                        ${menuItem("xlsx", "📊", "Excel (.xlsx)")}
+                    </div>
                     <div class="fg-sep"></div>
                     ${menuItem("clipboard", "📋", "Copy to clipboard")}
                     ${menuItem("queue", "⏩", "Queue for the Steam batch redeem")}
@@ -525,7 +532,16 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
         const exportBtn = panel.querySelector("#fg-export");
         const menu = panel.querySelector("#fg-menu");
 
+        const sub = panel.querySelector("#fg-sub");
+        const filesBtn = panel.querySelector("#fg-files");
+        const setSub = open => {
+            sub.classList.toggle("open", open);
+            filesBtn.setAttribute("aria-expanded", String(open));
+            filesBtn.textContent = open ? "💾 Save as file ▴" : "💾 Save as file ▾";
+        };
+        filesBtn.addEventListener("click", e => { e.stopPropagation(); setSub(!sub.classList.contains("open")); place(); });
         const setMenu = open => {
+            if (!open) setSub(false);
             menu.classList.toggle("open", open);
             exportBtn.setAttribute("aria-expanded", String(open));
         };
