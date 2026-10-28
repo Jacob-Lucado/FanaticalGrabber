@@ -153,11 +153,13 @@ async function checkOwned(titles) {
     return { owned: out };
 }
 
-async function gameInfo(appid) {
+const cleanCc = cc => (/^[A-Za-z]{2}$/.test(String(cc ?? "")) ? String(cc).toUpperCase() : undefined);
+
+async function gameInfo(appid, cc) {
     const { svcToken } = await chrome.storage.local.get("svcToken");
     if (!svcToken) return { status: "no_code" };
     let res;
-    try { res = await fetch(`${SVC}/api/grabber/game?appid=${encodeURIComponent(appid)}`, { headers: { Authorization: `Bearer ${svcToken}` } }); }
+    try { res = await fetch(`${SVC}/api/grabber/game?appid=${encodeURIComponent(appid)}${cleanCc(cc) ? "&cc=" + cleanCc(cc) : ""}`, { headers: { Authorization: `Bearer ${svcToken}` } }); }
     catch { return { status: "network" }; }
     if (res.status === 401) return { status: "bad_code" };
     if (!res.ok) return { status: "error" };
@@ -168,7 +170,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (sender.id !== chrome.runtime.id) return;
     const job = msg?.type === "session-check" ? sessionCheck()
         : msg?.type === "check-owned" ? checkOwned(Array.isArray(msg.titles) ? msg.titles.map(String) : [])
-        : msg?.type === "game-info" ? gameInfo(Number(msg.appid))
+        : msg?.type === "game-info" ? gameInfo(Number(msg.appid), msg.cc)
         : null;
     if (!job) return;
     job.then(sendResponse).catch(err => sendResponse({ status: "error", message: err.message }));
@@ -189,12 +191,12 @@ async function ownedAppIds() {
     } catch { return { error: "failed" }; }
 }
 
-async function pricesFor(appids) {
+async function pricesFor(appids, cc) {
     const { svcToken } = await chrome.storage.local.get("svcToken");
     if (!svcToken) return { status: "no_code" };
     let res;
     try {
-        res = await fetch(`${SVC}/api/grabber/prices`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${svcToken}` }, body: JSON.stringify({ appids: appids.slice(0, 60) }) });
+        res = await fetch(`${SVC}/api/grabber/prices`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${svcToken}` }, body: JSON.stringify({ appids: appids.slice(0, 60), cc: cleanCc(cc) }) });
     } catch { return { status: "network" }; }
     if (res.status === 401) return { status: "bad_code" };
     if (!res.ok) return { status: "error" };
@@ -204,7 +206,7 @@ async function pricesFor(appids) {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (sender.id !== chrome.runtime.id) return;
     const job = msg?.type === "owned-apps" ? ownedAppIds()
-        : msg?.type === "prices-for" ? pricesFor(Array.isArray(msg.appids) ? msg.appids.map(Number).filter(Number.isInteger) : [])
+        : msg?.type === "prices-for" ? pricesFor(Array.isArray(msg.appids) ? msg.appids.map(Number).filter(Number.isInteger) : [], msg.cc)
         : null;
     if (!job) return;
     job.then(sendResponse).catch(err => sendResponse({ status: "error", message: err.message }));

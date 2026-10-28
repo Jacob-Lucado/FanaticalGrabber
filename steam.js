@@ -307,6 +307,11 @@
 
     // ---------- bundle verdict and checkout guard ----------
     const appIdsIn = scope => [...new Set([...scope.querySelectorAll('a[href*="/app/"]')].map(a => Number(/\/app\/(\d{1,9})/.exec(a.getAttribute("href"))?.[1])).filter(Boolean))];
+    // The member's Steam store country (Steam keeps it in a cookie), else the browser language's region. The bot prices in that country's currency.
+    const storeCountry = () => {
+        const c = /(?:^|;\s*)steamCountry=([A-Za-z]{2})/.exec(document.cookie)?.[1] || /-([A-Za-z]{2})\b/.exec(navigator.language || "")?.[1];
+        return c ? c.toUpperCase() : undefined;
+    };
     const priceNumber = text => { const m = /(\d[\d.,]*)/.exec(String(text ?? "").replace(/\s/g, "")); if (!m) return null; const raw = /,\d{1,2}$/.test(m[1]) ? m[1].replace(/\./g, "").replace(",", ".") : m[1].replace(/,/g, ""); const n = Number(raw); return Number.isFinite(n) ? n : null; };
     const fmt = (n, cur) => { try { return new Intl.NumberFormat(undefined, { style: "currency", currency: cur || "USD" }).format(n); } catch { return String(Math.round(n * 100) / 100); } };
 
@@ -332,7 +337,7 @@
         if (!fresh.length) { lines.push("You already own everything in it."); tone = "bad"; }
         else {
             if (bundlePrice) lines.push(`${fresh.length} new game${fresh.length === 1 ? "" : "s"}, so about ${bundlePrice / fresh.length >= 10 ? Math.round(bundlePrice / fresh.length) : (bundlePrice / fresh.length).toFixed(2)} each at the bundle price.`);
-            const pr = await send({ type: "prices-for", appids: fresh });
+            const pr = await send({ type: "prices-for", appids: fresh, cc: storeCountry() });
             if (pr?.status === "ok" && pr.items.length) {
                 const cur = pr.items[0].currency;
                 const sep = pr.items.reduce((a, i) => a + (i.best?.price ?? i.steam ?? 0), 0);
@@ -353,7 +358,7 @@
         const dupes = [...seen].filter(([id]) => mine.has(id)).map(([, n]) => n);
         const lines = [];
         if (dupes.length) lines.push(`⚠️ You already own: ${dupes.slice(0, 6).join(", ")}${dupes.length > 6 ? " and more" : ""}.`);
-        const pr = await send({ type: "prices-for", appids: [...seen.keys()].filter(id => !mine.has(id)) });
+        const pr = await send({ type: "prices-for", appids: [...seen.keys()].filter(id => !mine.has(id)), cc: storeCountry() });
         if (pr?.status === "ok") {
             const cheaper = pr.items.filter(i => i.best && i.steam && i.best.shop !== "Steam" && i.best.price < i.steam * 0.9).slice(0, 5);
             for (const i of cheaper) lines.push(`💡 ${seen.get(i.appid)} is ${fmt(i.best.price, i.currency)} at ${i.best.shop} (Steam ${fmt(i.steam, i.currency)}).`);
@@ -364,7 +369,7 @@
     // ---------- price overlay on a store page ----------
     async function overlay() {
         if (!appMatch) return;
-        const r = await send({ type: "game-info", appid: appMatch[1] });
+        const r = await send({ type: "game-info", appid: appMatch[1], cc: storeCountry() });
         if (!r || r.status !== "ok" || !r.found) return;
         const money = n => (n == null ? "–" : new Intl.NumberFormat(undefined, { style: "currency", currency: r.currency || "USD" }).format(n));
         const close = el("button", { className: "x", textContent: "×", "aria-label": "Close" });
