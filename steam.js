@@ -274,7 +274,7 @@
 
     const closeBtn = el("button", { className: "x", textContent: "×", title: "Close", "aria-label": "Close" });
     panel.append(
-        el("header", {}, el("div", {}, el("b", { textContent: "Steam batch redeem" }), el("small", { textContent: "FanaticalGrabber v" + VERSION })), onRegister ? "" : closeBtn),
+        el("header", {}, el("div", {}, el("b", { textContent: "Batch Redeem" }), el("small", { textContent: "v" + VERSION })), onRegister ? "" : closeBtn),
         el("div", { className: "body" },
             banner,
             el("div", { className: "banner", textContent: "Make sure you are logged into the Steam account you want the games on. Keys are redeemed one at a time, about 3 seconds apart, using your signed-in session." }),
@@ -289,7 +289,7 @@
             el("div", { className: "foot", textContent: "Keys never leave your browser except to Steam. Already-handled keys are remembered and skipped. © 2026 Jacob Lucado" })));
 
     const tab = el("button", { className: "tab", innerHTML: "" });
-    tab.append(el("span", { textContent: "🎮 FanaticalGrabber" }));
+    tab.append(el("span", { textContent: "🎮 Batch Redeem" }));
     tab.title = "Steam batch redeem";
     let placeSteam = null;
     const open = on => { panel.classList.toggle("open", on); tab.hidden = on; if (on) checkLogin(); loadQueue(); if (placeSteam) placeSteam(); };

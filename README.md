@@ -50,7 +50,7 @@ A single **Export ▾** button opens a menu of formats. Any unrevealed keys are 
 | Clipboard | n/a | Copies `Game \| Key` lines, no file downloaded |
 
 ### 🎟️ Steam batch redeem panel (new in 2.4)
-On Steam itself the extension becomes a batch redeem tool with a clean, modern panel. On **store.steampowered.com/account/registerkey** it sits right under the form, and on every other Steam store page it is a pulsing **FanaticalGrabber** bar (click it to open). Both panels can be dragged anywhere by their bar or header, and remember where you put them.
+On Steam itself the extension becomes a batch redeem tool with a clean, modern panel. On **store.steampowered.com/account/registerkey** it sits right under the form, and on every other Steam store page it is a pulsing **Batch Redeem** bar (click it to open). Both panels can be dragged anywhere by their bar or header, and remember where you put them.
 - Paste keys (any text, they are picked out for you) or open a `.txt` file, check the login banner, and press **Redeem all**
 - **Queue for the Steam batch redeem** in the Fanatical export menu hands your revealed keys to this panel through the extension's own storage, so keys never go to any server
 - Optional **Skip games I already own**, matched by exact title for keys that came from Fanatical
