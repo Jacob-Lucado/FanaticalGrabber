@@ -349,8 +349,27 @@
     }
 
     async function cartGuard() {
-        const links = [...document.querySelectorAll('a[href*="/app/"]')].map(a => ({ id: Number(/\/app\/(\d{1,9})/.exec(a.getAttribute("href"))?.[1]), name: a.textContent.trim() })).filter(x => x.id && x.name);
-        const seen = new Map(links.map(x => [x.id, x.name]));
+        // Only the items actually in the cart. Each cart row has a Remove link, so find the row from that. The recommendations and
+        // anything else on the page are left alone.
+        const scanCart = () => {
+        const seen = new Map();
+        const removers = [...document.querySelectorAll("a, button, div, span")].filter(e => e.children.length === 0 && /^remove$/i.test(e.textContent.trim()));
+        for (const r of removers) {
+            let row = r.parentElement;
+            while (row && row !== document.body && !row.querySelector('a[href*="/app/"], img[src*="/steam/apps/"]')) row = row.parentElement;
+            if (!row || row === document.body) continue;
+            const link = row.querySelector('a[href*="/app/"]');
+            const id = Number(/\/app\/(\d{1,9})/.exec(link?.getAttribute("href") ?? "")?.[1] ?? /\/steam\/apps\/(\d{1,9})/.exec(row.querySelector('img[src*="/steam/apps/"]')?.getAttribute("src") ?? "")?.[1]);
+            if (!id || seen.has(id)) continue;
+            const clean = t => String(t ?? "").replace(/-?\d+%/g, " ").replace(/[$€£¥]\s?[\d.,]+|[\d.,]+\s?(?:€|zł|kr|₽|₺|R\$)/g, " ").replace(/\s+/g, " ").trim();
+            const name = clean([...row.querySelectorAll("a[href*='/app/']")].map(a => a.textContent).find(t => clean(t)) || row.querySelector("img[alt]")?.alt) || "App " + id;
+            seen.set(id, name);
+        }
+        return seen;
+        };
+        // The cart draws itself after the page loads, so give it a few seconds.
+        let seen = scanCart();
+        for (let n = 0; !seen.size && n < 20; n++) { await new Promise(r => setTimeout(r, 500)); seen = scanCart(); }
         if (!seen.size) return;
         const owned = await send({ type: "owned-apps" });
         if (!owned?.apps) return;
