@@ -61,6 +61,21 @@
         return Number.isFinite(n) && n >= 0 ? n : null;
     }
 
+    // Every revealed Steam-format key is remembered locally (title and time), so the dashboard's key vault can list what is still unredeemed.
+    async function saveToVault(rows) {
+        try {
+            const mine = rows.filter(r => /^[A-Z0-9]{5}(-[A-Z0-9]{5}){2}$/i.test(String(r.key).trim()));
+            if (!mine.length) return;
+            const { vault = {} } = await chrome.storage.local.get("vault");
+            let changed = false;
+            for (const r of mine) {
+                const k = r.key.trim().toUpperCase();
+                if (!vault[k]) { vault[k] = { title: r.title, store: "fanatical", at: new Date().toISOString() }; changed = true; }
+            }
+            if (changed) await chrome.storage.local.set({ vault });
+        } catch { /* the vault is a convenience */ }
+    }
+
     function collectKeys() {
         const seen = new Set();
         const rows = [];
@@ -73,6 +88,7 @@
             seen.add(id);
             rows.push({ title, key });
         });
+        saveToVault(rows);
         const total = orderTotal();
         if (total !== null && rows.length) {
             const each = Math.round(total / rows.length * 100) / 100;

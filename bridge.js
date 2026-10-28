@@ -17,6 +17,12 @@
         if (!m || m.svc !== "page") return;
         if (m.type === "ping") return say({ type: "pong", version: VERSION });
         if (m.type === "stop") return void stops.add(m.id);
+        if (m.type === "vault") {
+            // Revealed keys not yet redeemed, for the dashboard's key vault. The page gets them like a paste; they are never sent to the server.
+            const { vault = {}, redeemed = {} } = await chrome.storage.local.get(["vault", "redeemed"]);
+            const items = Object.entries(vault).filter(([k]) => !FINAL.includes(redeemed[k]?.status)).map(([key, v]) => ({ key, title: v.title || "Unknown", at: v.at || null })).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, MAX_KEYS);
+            return say({ type: "vault", items });
+        }
         if (m.type !== "redeem" || typeof m.id !== "string" || !Array.isArray(m.items)) return;
         if (running) return say({ type: "busy", id: m.id });
         running = true;

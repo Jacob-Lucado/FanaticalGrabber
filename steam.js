@@ -78,6 +78,8 @@
     .card .tag { display: inline-block; margin: 0 4px 6px 0; padding: 1px 7px; font-size: 11px; color: #d2efa9; background: #4c6b22; border-radius: 2px; }
     .card .tag.w { background: #2a475e; color: #67c1f5; }
     .card .x { float: right; }
+    .card.wide { width: 320px; } .card .line { margin: 4px 0; line-height: 1.35; }
+    .card.ok { border-color: #4c6b22; } .card.bad { border-color: #8a3a30; }
     `;
 
     const host = el("div", { id: "fg-steam-host" });
@@ -117,9 +119,12 @@
     }
 
     async function loadQueue() {
-        const { pendingKeys = [] } = await chrome.storage.local.get("pendingKeys");
+        const { pendingKeys: queued = [], vault = {}, redeemed = {} } = await chrome.storage.local.get(["pendingKeys", "vault", "redeemed"]);
+        // Queued keys plus everything in the vault that has not been redeemed yet.
+        const have = new Set(queued.map(x => x.key));
+        const pendingKeys = [...queued, ...Object.entries(vault).filter(([k]) => !have.has(k) && !FINAL.includes(redeemed[k]?.status)).map(([key, v]) => ({ key, title: v.title }))].slice(0, MAX_KEYS);
         queueBtn.hidden = !pendingKeys.length;
-        queueBtn.textContent = `Load ${pendingKeys.length} key${pendingKeys.length === 1 ? "" : "s"} from Fanatical`;
+        queueBtn.textContent = `Load ${pendingKeys.length} unredeemed key${pendingKeys.length === 1 ? "" : "s"} from Fanatical`;
         return pendingKeys;
     }
     let titles = new Map(); // key -> title, for keys loaded from Fanatical
@@ -242,6 +247,62 @@
     tab.addEventListener("click", () => open(true));
     closeBtn.addEventListener("click", () => open(false));
 
+    // ---------- bundle verdict and checkout guard ----------
+    const appIdsIn = scope => [...new Set([...scope.querySelectorAll('a[href*="/app/"]')].map(a => Number(/\/app\/(\d{1,9})/.exec(a.getAttribute("href"))?.[1])).filter(Boolean))];
+    const priceNumber = text => { const m = /(\d[\d.,]*)/.exec(String(text ?? "").replace(/\s/g, "")); if (!m) return null; const raw = /,\d{1,2}$/.test(m[1]) ? m[1].replace(/\./g, "").replace(",", ".") : m[1].replace(/,/g, ""); const n = Number(raw); return Number.isFinite(n) ? n : null; };
+    const fmt = (n, cur) => { try { return new Intl.NumberFormat(undefined, { style: "currency", currency: cur || "USD" }).format(n); } catch { return String(Math.round(n * 100) / 100); } };
+
+    function infoCard(title, lines, tone) {
+        const close = el("button", { className: "x", textContent: "×", "aria-label": "Close" });
+        const card = el("div", { className: "card wide" }, close, el("h4", { textContent: title }), ...lines.map(l => typeof l === "string" ? el("div", { className: "line", textContent: l }) : l));
+        if (tone) card.classList.add(tone);
+        close.addEventListener("click", () => card.remove());
+        root.append(card);
+    }
+
+    async function bundleHelper() {
+        const scope = document.querySelector(".page_content_ctn, #game_area_bundle, .page_content") || document.body;
+        const apps = appIdsIn(scope.querySelector(".bundle_package_item, .package_contents, .tab_item") ? scope : document.body).slice(0, 60);
+        if (apps.length < 2) return;
+        const owned = await send({ type: "owned-apps" });
+        if (!owned?.apps) return;
+        const mine = new Set(owned.apps);
+        const have = apps.filter(a => mine.has(a)), fresh = apps.filter(a => !mine.has(a));
+        const bundlePrice = priceNumber(document.querySelector(".discount_final_price, .game_purchase_price, .price")?.textContent);
+        const lines = [`You own ${have.length} of ${apps.length} games in this.`];
+        let tone = "";
+        if (!fresh.length) { lines.push("You already own everything in it."); tone = "bad"; }
+        else {
+            if (bundlePrice) lines.push(`${fresh.length} new game${fresh.length === 1 ? "" : "s"}, so about ${bundlePrice / fresh.length >= 10 ? Math.round(bundlePrice / fresh.length) : (bundlePrice / fresh.length).toFixed(2)} each at the bundle price.`);
+            const pr = await send({ type: "prices-for", appids: fresh });
+            if (pr?.status === "ok" && pr.items.length) {
+                const cur = pr.items[0].currency;
+                const sep = pr.items.reduce((a, i) => a + (i.best?.price ?? i.steam ?? 0), 0);
+                lines.push(`Buying the new ones separately costs about ${fmt(sep, cur)} now.`);
+                if (bundlePrice) { const good = bundlePrice < sep * 0.9; lines.push(good ? "👍 The bundle is cheaper than buying them separately." : "👎 Buying separately is about as cheap, or cheaper."); tone = good ? "ok" : "bad"; }
+            } else if (pr?.status === "no_code") lines.push("Add your link code (batch redeem panel, price overlay) to compare with buying separately.");
+        }
+        infoCard("Bundle check", lines, tone);
+    }
+
+    async function cartGuard() {
+        const links = [...document.querySelectorAll('a[href*="/app/"]')].map(a => ({ id: Number(/\/app\/(\d{1,9})/.exec(a.getAttribute("href"))?.[1]), name: a.textContent.trim() })).filter(x => x.id && x.name);
+        const seen = new Map(links.map(x => [x.id, x.name]));
+        if (!seen.size) return;
+        const owned = await send({ type: "owned-apps" });
+        if (!owned?.apps) return;
+        const mine = new Set(owned.apps);
+        const dupes = [...seen].filter(([id]) => mine.has(id)).map(([, n]) => n);
+        const lines = [];
+        if (dupes.length) lines.push(`⚠️ You already own: ${dupes.slice(0, 6).join(", ")}${dupes.length > 6 ? " and more" : ""}.`);
+        const pr = await send({ type: "prices-for", appids: [...seen.keys()].filter(id => !mine.has(id)) });
+        if (pr?.status === "ok") {
+            const cheaper = pr.items.filter(i => i.best && i.steam && i.best.shop !== "Steam" && i.best.price < i.steam * 0.9).slice(0, 5);
+            for (const i of cheaper) lines.push(`💡 ${seen.get(i.appid)} is ${fmt(i.best.price, i.currency)} at ${i.best.shop} (Steam ${fmt(i.steam, i.currency)}).`);
+        }
+        if (lines.length) infoCard("Before you check out", lines, dupes.length ? "bad" : "");
+    }
+
     // ---------- price overlay on a store page ----------
     async function overlay() {
         if (!appMatch) return;
@@ -272,4 +333,6 @@
         loadQueue();
     }
     overlay();
+    if (/^\/(bundle|sub)\/\d+/.test(location.pathname)) bundleHelper();
+    if (/^\/cart\/?$/.test(location.pathname)) cartGuard();
 })();

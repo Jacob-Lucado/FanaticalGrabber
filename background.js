@@ -174,3 +174,39 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     job.then(sendResponse).catch(err => sendResponse({ status: "error", message: err.message }));
     return true;
 });
+
+
+// ---------- bundle and cart helpers ----------
+let ownedCache = { at: 0, apps: null };
+async function ownedAppIds() {
+    if (ownedCache.apps && Date.now() - ownedCache.at < 60_000) return { apps: ownedCache.apps };
+    try {
+        const r = await fetch(`${STEAM}/dynamicstore/userdata/`, { credentials: "include" });
+        const apps = (await r.json()).rgOwnedApps || [];
+        if (!apps.length) return { error: "not_logged_in" };
+        ownedCache = { at: Date.now(), apps };
+        return { apps };
+    } catch { return { error: "failed" }; }
+}
+
+async function pricesFor(appids) {
+    const { svcToken } = await chrome.storage.local.get("svcToken");
+    if (!svcToken) return { status: "no_code" };
+    let res;
+    try {
+        res = await fetch(`${SVC}/api/grabber/prices`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${svcToken}` }, body: JSON.stringify({ appids: appids.slice(0, 60) }) });
+    } catch { return { status: "network" }; }
+    if (res.status === 401) return { status: "bad_code" };
+    if (!res.ok) return { status: "error" };
+    return { status: "ok", ...(await res.json()) };
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (sender.id !== chrome.runtime.id) return;
+    const job = msg?.type === "owned-apps" ? ownedAppIds()
+        : msg?.type === "prices-for" ? pricesFor(Array.isArray(msg.appids) ? msg.appids.map(Number).filter(Number.isInteger) : [])
+        : null;
+    if (!job) return;
+    job.then(sendResponse).catch(err => sendResponse({ status: "error", message: err.message }));
+    return true;
+});

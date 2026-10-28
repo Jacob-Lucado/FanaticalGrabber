@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FanaticalGrabber",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Reveal, export and batch-redeem your game keys. Adds a Steam-style batch redeem panel on Steam.",
   "permissions": [
     "clipboardWrite",

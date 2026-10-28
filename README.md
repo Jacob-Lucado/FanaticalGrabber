@@ -57,6 +57,11 @@ On Steam itself the extension becomes a batch redeem tool with a Steam-style pan
 - Live progress, a per-key result list and a CSV report; stops on a Steam login problem or rate limit
 - **Price overlay** on Steam game pages: paste your Steam Value Checker link code in the panel and a card shows your best price, the all-time low and whether you own or wishlisted the game. Only the app number is sent.
 
+### 🧩 New in 2.5
+- **Bundle check:** on a Steam bundle or package page it shows how many of the games you already own, the price per new game, and (with your link code) whether buying separately is cheaper.
+- **Checkout guard:** on the Steam cart it warns about games you already own and points out ones that are clearly cheaper at another store.
+- **Key vault:** every Steam-format key you reveal on Fanatical is remembered locally until it is redeemed. The dashboard's Batch redeem page lists them, prices them by title and loads them into the box. The Steam panel's Load button includes them too. Keys never leave your browser.
+
 ### 🔑 Batch redeem from the Steam Value Checker dashboard
 With the extension installed (2.3+), the dashboard's **Batch redeem** page (Games menu) can redeem pasted or uploaded Steam keys using your signed-in Steam session. Log into store.steampowered.com first. Keys go page -> extension -> Steam and never reach the dashboard's server.
 
