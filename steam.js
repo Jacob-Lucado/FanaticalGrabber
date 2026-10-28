@@ -28,10 +28,14 @@
         --shadow: 0 14px 40px rgba(3,8,18,.55); }
     [hidden] { display: none !important; }
     * { box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    .tab { position: fixed; right: 18px; bottom: 18px; z-index: 2147483646; display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 20px;
-        border: 0; border-radius: 999px; cursor: pointer; color: #fff; font-size: 14px; font-weight: 600;
-        background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: var(--shadow); transition: transform .12s, filter .12s; }
-    .tab:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .tab { position: fixed; right: 18px; bottom: 18px; z-index: 2147483646; display: flex; align-items: center; justify-content: center; width: 260px; height: 44px; padding: 0 20px;
+        border: 0; border-radius: 14px; cursor: pointer; color: #fff; font-size: 15px; font-weight: 700; user-select: none;
+        background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: var(--shadow); transition: filter .12s; }
+    .tab:hover { filter: brightness(1.1); }
+    .tab span { animation: fg-fade 2.8s ease-in-out infinite; }
+    @keyframes fg-fade { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+    @media (prefers-reduced-motion: reduce) { .tab span { animation: none; } }
+    header.min { cursor: pointer; }
     .panel { position: fixed; right: 18px; bottom: 18px; z-index: 2147483647; width: min(460px, calc(100vw - 24px)); max-height: calc(100vh - 36px);
         display: none; flex-direction: column; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
     .panel.open { display: flex; }
@@ -248,10 +252,13 @@
             el("div", { className: "foot", textContent: "Keys never leave your browser except to Steam. Already-handled keys are remembered and skipped. © 2026 Jacob Lucado" })));
 
     const tab = el("button", { className: "tab", innerHTML: "" });
-    tab.append(el("span", { textContent: "🎟️" }), el("span", { textContent: "Batch redeem" }));
+    tab.append(el("span", { textContent: "🎮 FanaticalGrabber" }));
+    tab.title = "Steam batch redeem";
     const open = on => { panel.classList.toggle("open", on); tab.hidden = on; if (on) checkLogin(); loadQueue(); };
     tab.addEventListener("click", () => open(true));
-    closeBtn.addEventListener("click", () => open(false));
+    closeBtn.addEventListener("click", e => { e.stopPropagation(); open(false); });
+    // Like the Fanatical panel: click the header to minimise it back to the pulsing bar.
+    if (!onRegister) { const head = panel.querySelector("header"); head.classList.add("min"); head.title = "Click to minimise"; head.addEventListener("click", () => open(false)); }
 
     // ---------- bundle verdict and checkout guard ----------
     const appIdsIn = scope => [...new Set([...scope.querySelectorAll('a[href*="/app/"]')].map(a => Number(/\/app\/(\d{1,9})/.exec(a.getAttribute("href"))?.[1])).filter(Boolean))];
