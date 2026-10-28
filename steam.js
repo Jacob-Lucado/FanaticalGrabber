@@ -27,6 +27,7 @@
         --accent: #4da3ff; --accent2: #7c6cff; --good: #3ddc97; --bad: #ff6b6b; --warn: #f2b84b; --input: #0d1522; --soft: rgba(255,255,255,.07); --soft2: rgba(255,255,255,.12);
         --shadow: 0 14px 40px rgba(3,8,18,.55); }
     [hidden] { display: none !important; }
+    * { scrollbar-width: thin; scrollbar-color: rgba(148,176,214,.35) transparent; }
     * { box-sizing: border-box; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     .tab { position: fixed; right: 18px; bottom: 18px; z-index: 2147483646; display: flex; align-items: center; justify-content: center; width: 260px; height: 44px; padding: 0 20px;
         border: 0; border-radius: 14px; cursor: pointer; color: #fff; font-size: 15px; font-weight: 700; user-select: none;
@@ -95,6 +96,42 @@
     const host = el("div", { id: "fg-steam-host" });
     const root = host.attachShadow({ mode: "open" });
     root.append(el("style", { textContent: CSS }));
+
+    // ---------- drag to move ----------
+    // Drag the bar or header to move the panel. The spot is remembered as the distance from the bottom-right corner, so the
+    // panel keeps opening upward and leftward from where you put it. A tiny movement is still a click.
+    function makeMovable(targets, handles, key) {
+        const apply = (r, b) => targets.forEach(t => { t.style.right = r + "px"; t.style.bottom = b + "px"; t.style.left = "auto"; t.style.top = "auto"; t.style.maxHeight = Math.max(160, window.innerHeight - b - 12) + "px"; });
+        const clamp = (t, r, b) => { const w = t.offsetWidth || 260, h = t.offsetHeight || 44;
+            return [Math.max(0, Math.min(window.innerWidth - w, r)), Math.max(0, Math.min(window.innerHeight - h, b))]; };
+        let pos = null;
+        const place = () => { if (!pos) return; const [r, b] = clamp(targets.find(t => t.offsetWidth) || targets[0], pos[0], pos[1]); apply(r, b); };
+        try { chrome.storage.local.get(key).then(v => { if (Array.isArray(v[key])) { pos = v[key]; place(); } }).catch(() => {}); } catch { /* storage is optional */ }
+        window.addEventListener("resize", place);
+        let wasDrag = false;
+        for (const handle of handles) {
+            handle.addEventListener("click", e => { if (wasDrag) { e.stopImmediatePropagation(); e.preventDefault(); wasDrag = false; } }, true);
+            handle.addEventListener("pointerdown", e => {
+                const hit = e.target.closest("button, a, input, textarea, select");
+                if (e.button !== 0 || (hit && hit !== handle)) return;
+                const t = targets.find(x => x.offsetWidth) || targets[0], rect = t.getBoundingClientRect();
+                const sx = e.clientX, sy = e.clientY, r0 = window.innerWidth - rect.right, b0 = window.innerHeight - rect.bottom;
+                let moved = false;
+                const move = ev => {
+                    const dx = ev.clientX - sx, dy = ev.clientY - sy;
+                    if (!moved && Math.hypot(dx, dy) < 5) return;
+                    moved = true;
+                    const [r, b] = clamp(t, r0 - dx, b0 - dy); pos = [r, b]; apply(r, b);
+                };
+                const up = () => {
+                    window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up);
+                    if (moved) { wasDrag = true; setTimeout(() => { wasDrag = false; }, 0); try { chrome.storage.local.set({ [key]: pos }); } catch { /* ignore */ } }
+                };
+                window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
+            });
+        }
+        return place;
+    }
 
     // ---------- the batch redeem panel ----------
     let items = [];       // { key, title, status, message, game }
@@ -254,8 +291,10 @@
     const tab = el("button", { className: "tab", innerHTML: "" });
     tab.append(el("span", { textContent: "🎮 FanaticalGrabber" }));
     tab.title = "Steam batch redeem";
-    const open = on => { panel.classList.toggle("open", on); tab.hidden = on; if (on) checkLogin(); loadQueue(); };
+    let placeSteam = null;
+    const open = on => { panel.classList.toggle("open", on); tab.hidden = on; if (on) checkLogin(); loadQueue(); if (placeSteam) placeSteam(); };
     tab.addEventListener("click", () => open(true));
+    if (!onRegister) placeSteam = makeMovable([panel, tab], [tab, panel.querySelector("header")], "fgPosSteam");
     closeBtn.addEventListener("click", e => { e.stopPropagation(); open(false); });
     // Like the Fanatical panel: click the header to minimise it back to the pulsing bar.
     if (!onRegister) { const head = panel.querySelector("header"); head.classList.add("min"); head.title = "Click to minimise"; head.addEventListener("click", () => open(false)); }
