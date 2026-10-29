@@ -212,3 +212,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     job.then(sendResponse).catch(err => sendResponse({ status: "error", message: err.message }));
     return true;
 });
+
+
+// ---------- Fanatical bundle and cart verdict: title -> Steam app number ----------
+async function titleAppIds(titles) {
+    const out = {};
+    for (const title of titles.slice(0, 40)) {
+        try {
+            const r = await fetch(`${STEAM}/api/storesearch/?term=${encodeURIComponent(title)}&l=english&cc=us`, { credentials: "omit" });
+            const hit = ((await r.json()).items || []).find(i => normTitle(i.name) === normTitle(title));
+            out[title] = hit ? hit.id : null;
+        } catch { out[title] = null; }
+        await new Promise(r => setTimeout(r, 300));
+    }
+    return { ids: out };
+}
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (sender.id !== chrome.runtime.id || msg?.type !== "title-appids") return;
+    titleAppIds(Array.isArray(msg.titles) ? msg.titles.map(String) : []).then(sendResponse).catch(err => sendResponse({ status: "error", message: err.message }));
+    return true;
+});
