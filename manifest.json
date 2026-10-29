@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FanaticalGrabber",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Reveal, export and batch-redeem your game keys. Adds a batch redeem panel on Steam.",
   "permissions": [
     "clipboardWrite",
@@ -29,13 +29,30 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://store.steampowered.com/*"],
-      "js": ["steam.js"],
+      "matches": [
+        "https://store.steampowered.com/*"
+      ],
+      "js": [
+        "steam.js"
+      ],
       "run_at": "document_idle"
     },
     {
-      "matches": ["https://steamvaluechecker.fly.dev/*"],
-      "js": ["bridge.js"],
+      "matches": [
+        "https://store.steampowered.com/account/history*"
+      ],
+      "js": [
+        "history.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://steamvaluechecker.fly.dev/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
       "run_at": "document_idle"
     }
   ],
