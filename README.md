@@ -66,7 +66,7 @@ On Steam itself the extension becomes a batch redeem tool with a clean, modern p
 With the extension installed (2.3+), the dashboard's **Batch redeem** page (Games menu) can redeem pasted or uploaded Steam keys using your signed-in Steam session. Log into store.steampowered.com first. Keys go page -> extension -> Steam and never reach the dashboard's server.
 
 ### 💰 Fill in what you paid (Steam purchase history)
-Open [your Steam purchase history](https://store.steampowered.com/account/history) and press **Send what I paid**. The extension loads your history, reads each single-game purchase and its price, and sends only the titles and prices to your Steam Value Checker library (same link code). Gifts, refunds, free items and in-game or market purchases are ignored; cart and bundle purchases are skipped because Steam shows one total for several games.
+Open [your Steam purchase history](https://store.steampowered.com/account/history) and press **Send what I paid**. The extension loads your history, reads each single-game purchase and its price, and sends only the titles and prices to your Steam Value Checker library (same link code). Game and gift purchases are read; market, in-game, wallet and refunded items are ignored; cart and bundle purchases are skipped because Steam shows one total for several games.
 
 ### 📤 Send to Steam Value Checker
 One click sends your game titles (**never your keys**) to your library in the [Steam Value Checker](https://steamvaluechecker.fly.dev/) Discord bot, with what you paid for the order. Get a link code once with `/library grabber` in Discord and paste it into the panel. The order total is split evenly across the games on the page, since Fanatical shows one total per order.

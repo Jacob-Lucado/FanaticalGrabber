@@ -34,7 +34,8 @@
         const out = new Map();
         let skipped = 0;
         for (const r of rows) {
-            if (!/purchase/i.test(r.type) || /gift|in-?game|market|subscription/i.test(r.type)) continue;
+            // Game purchases and gift purchases count. Market, in-game, wallet, subscription and refund rows are ignored.
+            if (!/purchase/i.test(r.type) || /market|in-?game|wallet|subscription|refund/i.test(r.type)) continue;
             const price = parsePrice(r.total);
             if (price === null || price <= 0) continue;
             if (r.items.length !== 1) { skipped++; continue; }
@@ -59,15 +60,18 @@
 
     // ---------- the button ----------
     const host = document.createElement("div");
-    host.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483000";
+    host.style.cssText = "display:block;margin:0 0 16px";
     const root = host.attachShadow({ mode: "open" });
     root.innerHTML = `<style>
-      .box{font:13px/1.4 system-ui,sans-serif;background:#162134;color:#cdd9e8;border:1px solid #2f4a6d;border-radius:12px;padding:12px 14px;width:260px;box-shadow:0 8px 28px #0008}
+      .box{font:13px/1.4 system-ui,sans-serif;background:#162134;color:#cdd9e8;border:1px solid #2f4a6d;border-radius:12px;padding:12px 14px;max-width:420px;box-shadow:0 8px 28px #0006}
       b{color:#fff;display:block;margin-bottom:4px} p{margin:4px 0 10px;color:#8396ad;font-size:12px}
       button{font:inherit;font-weight:600;background:#4da3ff;color:#06121f;border:0;border-radius:999px;padding:7px 14px;cursor:pointer;width:100%}
       button:disabled{opacity:.6;cursor:default} .s{margin-top:8px;color:#cdd9e8;font-size:12px}
     </style><div class="box"><b>Steam Value Checker</b><p>Fill in what you paid for your games from this page. Only titles and prices are sent.</p><button>Send what I paid</button><div class="s" aria-live="polite"></div></div>`;
-    document.documentElement.appendChild(host);
+    // Sit at the top of the history list, in the page itself, so it never covers another floating button (like batch redeem).
+    const anchor = document.querySelector(".wallet_table") || document.querySelector(".wallet_table_row")?.parentElement;
+    if (anchor?.parentElement) anchor.parentElement.insertBefore(host, anchor);
+    else { host.style.cssText = "position:fixed;left:16px;bottom:16px;z-index:2147483000"; document.documentElement.appendChild(host); }
     const btn = root.querySelector("button"), status = root.querySelector(".s");
     const say = t => { status.textContent = t; };
     const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -84,7 +88,19 @@
         }
     }
 
+    // Press "Load more transactions" over and over as soon as the page opens, so every purchase is on the page.
+    let loaded = false;
+    btn.disabled = true; btn.textContent = "Loading your history…";
+    (async () => {
+        try { say("Loading your whole history…"); await loadAll(); }
+        catch { /* the button still works with what is loaded */ }
+        loaded = true; btn.disabled = false; btn.textContent = "Send what I paid";
+        const n = pricesFrom(readRows()).entries.length;
+        say(n ? `Loaded ${document.querySelectorAll(".wallet_table_row").length} rows. ${n} games with a price found.` : "Nothing with a price found on this page yet.");
+    })();
+
     btn.addEventListener("click", async () => {
+        if (!loaded) return;
         btn.disabled = true;
         try {
             let { svcToken } = await chrome.storage.local.get("svcToken");
@@ -92,8 +108,7 @@
                 svcToken = (window.prompt("Paste your Steam Value Checker link code.\nGet one in Discord with /library grabber.") || "").trim();
                 if (!svcToken) { say("Cancelled."); return; }
             }
-            say("Loading your history…");
-            await loadAll();
+            await loadAll(); // in case more rows appeared
             const { entries, skipped } = pricesFrom(readRows());
             if (!entries.length) { say("No single-game purchases with a price found on this page."); return; }
             say(`Sending ${entries.length} games…`);
