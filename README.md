@@ -4,7 +4,7 @@
 
 **Reveal, export and redeem your Fanatical game keys from one panel.**
 
-![Version](https://img.shields.io/badge/version-2.1.1-ff9800)
+![Version](https://img.shields.io/badge/version-2.6.1-ff9800)
 ![Manifest](https://img.shields.io/badge/manifest-v3-107c41)
 ![Browsers](https://img.shields.io/badge/browsers-Chromium-66c0f4)
 ![Status](https://img.shields.io/badge/steam%20redeem-beta-orange)
@@ -61,6 +61,9 @@ On Steam itself the extension becomes a batch redeem tool with a clean, modern p
 - **Bundle check:** on a Steam bundle or package page it shows how many of the games you already own, the price per new game, and (with your link code) whether buying separately is cheaper.
 - **Checkout guard:** on the Steam cart it warns about games you already own and points out ones that are clearly cheaper at another store.
 - **Key vault:** every Steam-format key you reveal on Fanatical is remembered locally until it is redeemed. The dashboard's Batch redeem page lists them, prices them by title and loads them into the box. The Steam panel's Load button includes them too. Keys never leave your browser.
+
+### 🛒 Fanatical bundle and cart check (2.6)
+On a Fanatical bundle page or your cart, a small card at the bottom right compares what you would pay with Steam's own prices for the games you do not own yet. It says whether the deal is worth it, and ends with "You're seeing the best deals available" when you are well under Steam. If it cannot read the cart, find the games or get prices, the card says which step failed instead of staying blank. Works when you open the cart from inside Fanatical without reloading. Needs your link code for the price comparison; only game titles are sent.
 
 ### 🔑 Batch redeem from the Steam Value Checker dashboard
 With the extension installed (2.3+), the dashboard's **Batch redeem** page (Games menu) can redeem pasted or uploaded Steam keys using your signed-in Steam session. Log into store.steampowered.com first. Keys go page -> extension -> Steam and never reach the dashboard's server.
