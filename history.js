@@ -66,7 +66,7 @@
       .box{font:13px/1.4 system-ui,sans-serif;background:#162134;color:#cdd9e8;border:1px solid #2f4a6d;border-radius:12px;padding:12px 14px;max-width:420px;box-shadow:0 8px 28px #0006}
       b{color:#fff;display:block;margin-bottom:4px} p{margin:4px 0 10px;color:#8396ad;font-size:12px}
       button{font:inherit;font-weight:600;background:#4da3ff;color:#06121f;border:0;border-radius:999px;padding:7px 14px;cursor:pointer;width:100%}
-      button:disabled{opacity:.6;cursor:default} .s{margin-top:8px;color:#cdd9e8;font-size:12px}
+      button:disabled{opacity:.6;cursor:default} .s{margin-top:8px;color:#cdd9e8;font-size:12px;white-space:pre-line;max-height:240px;overflow:auto}
     </style><div class="box"><b>Steam Value Checker</b><p>Fill in what you paid for your games from this page. Only titles and prices are sent.</p><button>Send what I paid</button><div class="s" aria-live="polite"></div></div>`;
     // Sit at the top of the history list, in the page itself, so it never covers another floating button (like batch redeem).
     const anchor = document.querySelector(".wallet_table") || document.querySelector(".wallet_table_row")?.parentElement;
@@ -111,15 +111,29 @@
             await loadAll(); // in case more rows appeared
             const { entries, skipped } = pricesFrom(readRows());
             if (!entries.length) { say("No single-game purchases with a price found on this page."); return; }
-            say(`Sending ${entries.length} games…`);
-            const r = await chrome.runtime.sendMessage({ type: "send-to-checker", token: svcToken, titles: entries.map(e => e.title), paid: entries.map(e => e.paid) });
-            if (r?.status === "sent") {
-                await chrome.storage.local.set({ svcToken });
-                say(`Done: ${r.added} added, ${r.updated} updated${r.notFound ? `, ${r.notFound} not matched` : ""}.${skipped ? ` ${skipped} cart or bundle purchases were skipped (no price per game).` : ""}`);
-            } else {
-                if (r?.status === "bad_code") await chrome.storage.local.remove("svcToken");
-                say(r?.message || "Could not send.");
+            // The bot allows one send every ten seconds, so a long history goes in batches.
+            const BATCH = 400, total = { filled: 0, added: 0, missing: [], unpriced: 0, unpricedTitles: [] };
+            let last = null;
+            for (let i = 0; i < entries.length; i += BATCH) {
+                if (i) { for (let s = 11; s > 0; s--) { say(`Sent ${i} of ${entries.length}. Next batch in ${s}s…`); await wait(1000); } }
+                const part = entries.slice(i, i + BATCH);
+                say(`Sending ${Math.min(i + BATCH, entries.length)} of ${entries.length} games…`);
+                const r = await chrome.runtime.sendMessage({ type: "send-to-checker", mode: "prices", token: svcToken, titles: part.map(e => e.title), paid: part.map(e => e.paid) });
+                if (r?.status !== "sent") {
+                    if (r?.status === "bad_code") await chrome.storage.local.remove("svcToken");
+                    say(r?.message || "Could not send."); return;
+                }
+                last = r;
+                total.filled += r.updated; total.added += r.added; total.missing.push(...r.missing);
+                total.unpriced = r.unpriced; total.unpricedTitles = r.unpricedTitles;
             }
+            await chrome.storage.local.set({ svcToken });
+            const list = (title, arr, n) => arr.length ? `\n\n${title}\n• ${arr.slice(0, 15).join("\n• ")}${n > 15 ? `\n…and ${n - 15} more` : ""}` : "";
+            const lines = [`Done: prices filled in for ${total.filled} game${total.filled === 1 ? "" : "s"}${total.added ? `, ${total.added} added to your library` : ""}.`];
+            if (skipped) lines.push(`${skipped} cart or bundle purchase${skipped === 1 ? "" : "s"} skipped (Steam shows one total for several games).`);
+            if (total.missing.length) lines.push(`${total.missing.length} not in your library: they were not synced, or the name differs.`);
+            if (total.unpriced) lines.push(`${total.unpriced} synced game${total.unpriced === 1 ? "" : "s"} still have no price (free, a cart or key purchase, or not in this history).`);
+            say(lines.join(" ") + list("Not found in your library:", total.missing, total.missing.length) + list("Still without a price:", total.unpricedTitles, total.unpriced));
         } catch (e) { say("Something went wrong: " + e.message); }
         finally { btn.disabled = false; }
     });
