@@ -114,7 +114,7 @@ async function sendToChecker(token, titles, paid = [], mode = null) {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg?.type !== "send-to-checker") return;
     if (sender.id !== chrome.runtime.id) return;
-    sendToChecker(String(msg.token ?? ""), Array.isArray(msg.titles) ? msg.titles : [], Array.isArray(msg.paid) ? msg.paid : [], ["prices", "retail"].includes(msg.mode) ? msg.mode : null)
+    sendToChecker(String(msg.token ?? ""), Array.isArray(msg.titles) ? msg.titles : [], Array.isArray(msg.paid) ? msg.paid : [], ["prices", "retail", "gifted"].includes(msg.mode) ? msg.mode : null)
         .then(sendResponse)
         .catch(err => sendResponse({ status: "error", message: err.message }));
     return true;
