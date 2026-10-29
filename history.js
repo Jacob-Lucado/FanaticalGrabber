@@ -69,7 +69,13 @@
       button:disabled{opacity:.6;cursor:default} .s{margin-top:8px;color:#cdd9e8;font-size:12px;white-space:pre-line;max-height:240px;overflow:auto}
     </style><div class="box"><b>Steam Value Checker</b><p>Fill in what you paid for your games from this page. Only titles and prices are sent.</p><button>Send what I paid</button><div class="s" aria-live="polite"></div></div>`;
     // Sit at the top of the history list, in the page itself, so it never covers another floating button (like batch redeem).
-    const anchor = document.querySelector(".wallet_table") || document.querySelector(".wallet_table_row")?.parentElement;
+    // Steam draws the list as a table, so climb out of any table parts first: a box inside the table becomes a squashed column.
+    const firstRow = document.querySelector(".wallet_table_row") || document.querySelector(".wallet_table");
+    let anchor = firstRow?.closest("table") || null;
+    if (!anchor && firstRow) {
+        anchor = firstRow;
+        while (anchor.parentElement && anchor.parentElement !== document.body && /^(table|inline-table)/.test(getComputedStyle(anchor.parentElement).display)) anchor = anchor.parentElement;
+    }
     if (anchor?.parentElement) anchor.parentElement.insertBefore(host, anchor);
     else { host.style.cssText = "position:fixed;left:16px;bottom:16px;z-index:2147483000"; document.documentElement.appendChild(host); }
     const btn = root.querySelector("button"), status = root.querySelector(".s");
