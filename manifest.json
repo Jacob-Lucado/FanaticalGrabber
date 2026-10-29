@@ -48,6 +48,15 @@
     },
     {
       "matches": [
+        "https://store.steampowered.com/account/licenses*"
+      ],
+      "js": [
+        "licenses.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
         "https://steamvaluechecker.fly.dev/*"
       ],
       "js": [

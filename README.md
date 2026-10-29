@@ -68,6 +68,9 @@ With the extension installed (2.3+), the dashboard's **Batch redeem** page (Game
 ### 💰 Fill in what you paid (Steam purchase history)
 Open [your Steam purchase history](https://store.steampowered.com/account/history) and press **Send what I paid**. The extension loads your history, reads each single-game purchase and its price, and fills in the price on games already in your Steam Value Checker library (a Steam sync's games are matched, never duplicated), then lists any it could not match and any synced games still without a price (same link code). Game and gift purchases are read; market, in-game, wallet and refunded items are ignored; cart and bundle purchases are skipped because Steam shows one total for several games.
 
+### 🔑 Retail prices for key activations (Steam licenses)
+Open [your Steam licenses](https://store.steampowered.com/account/licenses/) and press **Record retail prices for my keys**. Key activations have no price on Steam, so the bot records each game's retail price instead (only for games already in your library, and never over a price you already have). Only titles are sent.
+
 ### 📤 Send to Steam Value Checker
 One click sends your game titles (**never your keys**) to your library in the [Steam Value Checker](https://steamvaluechecker.fly.dev/) Discord bot, with what you paid for the order. Get a link code once with `/library grabber` in Discord and paste it into the panel. The order total is split evenly across the games on the page, since Fanatical shows one total per order.
 

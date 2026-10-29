@@ -99,7 +99,7 @@ async function sendToChecker(token, titles, paid = [], mode = null) {
         res = await fetch(`${SVC}/api/grabber/import`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify(mode === "prices" ? { entries, mode } : { entries })
+            body: JSON.stringify(mode ? { entries, mode } : { entries })
         });
     } catch {
         return { status: "network", message: "Could not reach Steam Value Checker" };
@@ -108,13 +108,13 @@ async function sendToChecker(token, titles, paid = [], mode = null) {
     try { data = await res.json(); } catch { /* not json */ }
     if (res.status === 401) return { status: "bad_code", message: "That link code is no longer valid. Make a new one with /library grabber." };
     if (!res.ok) return { status: "error", message: data.error || `Steam Value Checker said HTTP ${res.status}` };
-    return { status: "sent", added: data.added ?? 0, updated: data.updated ?? 0, notFound: data.notFound ?? 0, missing: Array.isArray(data.missing) ? data.missing.map(String).slice(0, 50) : [], unpriced: data.unpriced ?? 0, unpricedTitles: Array.isArray(data.unpricedTitles) ? data.unpricedTitles.map(String).slice(0, 50) : [], mode: data.mode ?? null };
+    return { status: "sent", added: data.added ?? 0, updated: data.updated ?? 0, notFound: data.notFound ?? 0, missing: Array.isArray(data.missing) ? data.missing.map(String).slice(0, 50) : [], unpriced: data.unpriced ?? 0, unpricedTitles: Array.isArray(data.unpricedTitles) ? data.unpricedTitles.map(String).slice(0, 50) : [], mode: data.mode ?? null, alreadyPriced: data.alreadyPriced ?? 0, noRetail: Array.isArray(data.noRetail) ? data.noRetail.map(String).slice(0, 50) : [], noRetailCount: data.noRetailCount ?? 0 };
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg?.type !== "send-to-checker") return;
     if (sender.id !== chrome.runtime.id) return;
-    sendToChecker(String(msg.token ?? ""), Array.isArray(msg.titles) ? msg.titles : [], Array.isArray(msg.paid) ? msg.paid : [], msg.mode === "prices" ? "prices" : null)
+    sendToChecker(String(msg.token ?? ""), Array.isArray(msg.titles) ? msg.titles : [], Array.isArray(msg.paid) ? msg.paid : [], ["prices", "retail"].includes(msg.mode) ? msg.mode : null)
         .then(sendResponse)
         .catch(err => sendResponse({ status: "error", message: err.message }));
     return true;
