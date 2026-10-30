@@ -113,7 +113,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 
 <main class="wrap policy">
   <h1>Privacy Policy</h1>
-  <p>Last updated: October 26, 2026</p>
+  <p>Last updated: October 30, 2026</p>
   <p>FanaticalGrabber is a browser extension that helps you reveal, export and redeem game keys from your own Fanatical account.</p>
 
   <h2>Data the extension accesses</h2>
@@ -123,7 +123,9 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
     <li>A local list of keys you've already redeemed, with status and timestamp.</li>
     <li>If you press "Send what I paid" on your Steam purchase history page: the game titles and prices listed there. Only titles and prices are sent, to your own Steam Value Checker library.</li>
     <li>If you press "Record retail prices for my keys" on your Steam licenses page: the titles of your key activations. Only titles are sent.</li>
-    <li>If you use "Send to Steam Value Checker": a link code you paste in once, which is kept in your browser.</li>
+    <li>If you use "Send to Steam Value Checker": a link code you paste in once, or that the Steam Value Checker dashboard hands to the extension when you press "Connect the extension". It is kept in your browser.</li>
+    <li>Revealed Steam-format keys (with the game title and time) are remembered in your browser's local storage until redeemed, so the dashboard's Batch redeem page can list them. They are passed from the dashboard page to the extension and on to Steam. They are never sent to the Steam Value Checker server.</li>
+    <li>On Fanatical bundle and cart pages and on the Steam cart and bundle pages: the game titles listed there are looked up on Steam, and the Steam game ids are sent to your Steam Value Checker account (with your link code, if you have one) to compare prices and to check which games you already own. No keys or payment details are read.</li>
   </ul>
 
   <h2>How it is used</h2>
