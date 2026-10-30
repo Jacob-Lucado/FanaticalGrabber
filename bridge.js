@@ -17,6 +17,12 @@
         if (!m || m.svc !== "page") return;
         if (m.type === "ping") return say({ type: "pong", version: VERSION });
         if (m.type === "stop") return void stops.add(m.id);
+        if (m.type === "connect") {
+            // The dashboard hands over a fresh link code so nothing has to be copied and pasted.
+            if (typeof m.token !== "string" || !/^svcg_[A-Za-z0-9_-]{43}$/.test(m.token)) return say({ type: "connected", ok: false });
+            await chrome.storage.local.set({ svcToken: m.token });
+            return say({ type: "connected", ok: true });
+        }
         if (m.type === "vault") {
             // Revealed keys not yet redeemed, for the dashboard's key vault. The page gets them like a paste; they are never sent to the server.
             const { vault = {}, redeemed = {} } = await chrome.storage.local.get(["vault", "redeemed"]);
