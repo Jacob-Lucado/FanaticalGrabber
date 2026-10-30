@@ -232,3 +232,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     titleAppIds(Array.isArray(msg.titles) ? msg.titles.map(String) : []).then(sendResponse).catch(err => sendResponse({ status: "error", message: err.message }));
     return true;
 });
+
+// ---------- Update reminder ----------
+// Chrome updates Web Store installs by itself; this tells people when a newer version exists (and when it is ready to restart into),
+// which matters most for the .zip install. It asks the dashboard for the newest version number: no sign-in, nothing about you is sent.
+const UPDATE_CHECK_MS = 6 * 3600_000, UPDATE_SNOOZE_MS = 3 * 86400_000;
+const verLess = (a, b) => { const x = String(a).split(".").map(n => parseInt(n, 10) || 0), y = String(b).split(".").map(n => parseInt(n, 10) || 0); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0); return false; };
+chrome.runtime.onUpdateAvailable?.addListener(d => { chrome.storage.local.set({ updReady: d?.version || true }); });
+async function updateStatus() {
+    const current = chrome.runtime.getManifest().version;
+    const s = await chrome.storage.local.get(["updInfo", "updAt", "updSnooze", "updReady"]);
+    let info = s.updInfo;
+    if (!info || Date.now() - (s.updAt || 0) > UPDATE_CHECK_MS) {
+        try {
+            const res = await fetch(`${SVC}/api/extension/latest`, { credentials: "omit" });
+            const j = res.ok ? await res.json() : null;
+            if (j && /^\d+\.\d+\.\d+$/.test(j.latest) && typeof j.url === "string" && /^https:\/\//.test(j.url)) info = { latest: j.latest, url: j.url };
+        } catch { /* offline: use what we knew */ }
+        await chrome.storage.local.set({ updAt: Date.now(), ...(info ? { updInfo: info } : {}) });
+        try { chrome.runtime.requestUpdateCheck?.()?.catch?.(() => {}); } catch { /* sideloaded installs have no store to ask */ }
+    }
+    if (s.updReady && typeof s.updReady === "string" && !verLess(current, s.updReady)) { await chrome.storage.local.remove("updReady"); s.updReady = null; } // already running it
+    const ready = Boolean(s.updReady);
+    const outdated = Boolean(info) && verLess(current, info.latest);
+    return { current, latest: info?.latest ?? current, url: info?.url ?? null, outdated, ready: outdated && ready, snoozed: Date.now() < (s.updSnooze || 0) };
+}
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (sender.id !== chrome.runtime.id) return;
+    if (msg?.type === "update-status") { updateStatus().then(sendResponse).catch(() => sendResponse(null)); return true; }
+    if (msg?.type === "update-snooze") { chrome.storage.local.set({ updSnooze: Date.now() + UPDATE_SNOOZE_MS }).then(() => sendResponse({ ok: true })); return true; }
+    if (msg?.type === "update-apply") { sendResponse({ ok: true }); setTimeout(() => chrome.runtime.reload(), 200); }
+});

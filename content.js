@@ -535,6 +535,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
 
         const header = panel.querySelector("#fg-header");
         const body = panel.querySelector("#fg-body");
+        window.fgUpdateNotice?.(body);
         const exportBtn = panel.querySelector("#fg-export");
         const menu = panel.querySelector("#fg-menu");
 

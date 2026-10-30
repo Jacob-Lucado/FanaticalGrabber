@@ -297,6 +297,7 @@
     const tab = el("button", { className: "tab", innerHTML: "" });
     tab.append(el("span", { textContent: "🎮 Batch Redeem" }));
     tab.title = "Steam batch redeem";
+    window.fgUpdateNotice?.(panel.querySelector(".body"));
     let placeSteam = null;
     const open = on => { panel.classList.toggle("open", on); tab.hidden = on; if (on) checkLogin(); loadQueue(); if (placeSteam) placeSteam.park(!on); };
     tab.addEventListener("click", () => open(true));

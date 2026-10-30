@@ -4,7 +4,7 @@
 
 **Reveal, export and redeem your Fanatical game keys from one panel.**
 
-![Version](https://img.shields.io/badge/version-2.7.0-ff9800)
+![Version](https://img.shields.io/badge/version-2.8.0-ff9800)
 ![Manifest](https://img.shields.io/badge/manifest-v3-107c41)
 ![Browsers](https://img.shields.io/badge/browsers-Chromium-66c0f4)
 ![Status](https://img.shields.io/badge/steam%20redeem-beta-orange)
@@ -64,6 +64,9 @@ On Steam itself the extension becomes a batch redeem tool with a clean, modern p
 
 ### 🛒 Fanatical bundle and cart check (2.6)
 On a Fanatical bundle page or your cart, a small card at the bottom right compares what you would pay with Steam's own prices for the games you do not own yet. It says whether the deal is worth it, and ends with "You're seeing the best deals available" when you are well under Steam. If it cannot read the cart, find the games or get prices, the card says which step failed instead of staying blank. Works when you open the cart from inside Fanatical without reloading. Needs your link code for the price comparison; only game titles are sent.
+
+### 🔔 Update reminder (2.8)
+When a newer version is out, the Fanatical and Steam panels show a small notice with a **Get the update** button (or **Restart to update** once Chrome has downloaded it). **Later** hides it for three days. The extension only asks the Steam Value Checker site for the newest version number about every six hours; no sign-in, nothing about you is sent. Web Store installs also update by themselves.
 
 ### 🔗 One-click connect (2.7)
 Sign in on the [Steam Value Checker](https://steamvaluechecker.fly.dev/) dashboard (with Steam or Discord), open **Library** and press **Connect the extension**. The dashboard hands the extension its link code directly, so there is nothing to copy or paste. The code stays in the extension's own storage and is only sent to that dashboard.

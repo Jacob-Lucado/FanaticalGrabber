@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FanaticalGrabber",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "Reveal, export and batch-redeem your game keys. Adds a batch redeem panel on Steam.",
   "permissions": [
     "clipboardWrite",
@@ -23,6 +23,7 @@
       ],
       "js": [
         "xlsx.full.min.js",
+        "update.js",
         "content.js",
         "deals.js"
       ],
@@ -33,6 +34,7 @@
         "https://store.steampowered.com/*"
       ],
       "js": [
+        "update.js",
         "steam.js"
       ],
       "run_at": "document_idle"
