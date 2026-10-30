@@ -235,7 +235,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 // ---------- Update reminder ----------
 // Chrome updates Web Store installs by itself; this tells people when a newer version exists (and when it is ready to restart into),
-// which matters most for the .zip install. It asks the dashboard for the newest version number: no sign-in, nothing about you is sent.
+// and it asks the dashboard for the newest version number: no sign-in, nothing about you is sent.
 const UPDATE_CHECK_MS = 6 * 3600_000, UPDATE_SNOOZE_MS = 3 * 86400_000;
 const verLess = (a, b) => { const x = String(a).split(".").map(n => parseInt(n, 10) || 0), y = String(b).split(".").map(n => parseInt(n, 10) || 0); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0); return false; };
 chrome.runtime.onUpdateAvailable?.addListener(d => { chrome.storage.local.set({ updReady: d?.version || true }); });

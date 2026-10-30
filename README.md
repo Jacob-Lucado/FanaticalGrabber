@@ -108,37 +108,13 @@ Redeems your **already revealed** keys on the Steam account you're logged into.
 
 FanaticalGrabber works on Chromium-based browsers: **Chrome, Edge, Brave, Opera, Vivaldi, Arc**. Firefox and Safari are not supported.
 
-### Chrome Web Store (easiest)
+### Chrome Web Store
 **[Add FanaticalGrabber from the Chrome Web Store](https://chromewebstore.google.com/detail/fanaticalgrabber/kmbpdeglijkfbkifilcckkeljagcdbnb)**. It updates by itself. Brave, Opera and Vivaldi can install from the Web Store too; Edge asks you to allow extensions from other stores first.
 
-### Manual install (.zip)
-The **Download ZIP** from this repository is always the latest version. The Web Store copy updates after each review, so the ZIP can be a little ahead. It is installed as an unpacked extension:
-
-1. **Download** the project: click **Code → Download ZIP** at the top of this repository, then extract it to a folder you'll keep.
-2. Open your browser's extensions page:
-
-   | Browser | Address |
-   | --- | --- |
-   | Chrome | `chrome://extensions` |
-   | Edge | `edge://extensions` |
-   | Brave | `brave://extensions` |
-   | Opera | `opera://extensions` |
-   | Vivaldi | `vivaldi://extensions` |
-
-3. Turn on **Developer mode** (top right, or the sidebar on Edge).
-4. Click **Load unpacked** and select the folder that **directly contains** `manifest.json`.
-5. Open your Fanatical orders page and click the orange **🎮 FanaticalGrabber** bar in the bottom right.
-
-> Keep the folder somewhere permanent. If you move or delete it, the extension stops working.
-
 ### 🔄 Updating
-Web Store installs update by themselves. For the ZIP:
+The Web Store keeps FanaticalGrabber up to date by itself, and the panel shows a reminder when a newer version is out.
 
-1. Replace the old files with the new ones, overwriting everything.
-2. On your extensions page, click **Reload** on FanaticalGrabber.
-3. Hard-refresh the Fanatical tab with `Ctrl + Shift + R`.
-
-The panel footer shows the installed version. Note that this number comes from `manifest.json`, so make sure **all** files were replaced, not only the manifest.
+The panel footer shows the installed version. 
 
 ---
 
