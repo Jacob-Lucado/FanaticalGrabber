@@ -2,7 +2,7 @@
 
 # FanaticalGrabber
 
-**Reveal, export and redeem your Fanatical game keys from one panel.**
+**Reveal, export and redeem your Fanatical keys without all the clicking.**
 
 ![Version](https://img.shields.io/badge/version-2.8.1-ff9800)
 ![Manifest](https://img.shields.io/badge/manifest-v3-107c41)
@@ -20,7 +20,7 @@
 
 ## About
 
-FanaticalGrabber is a Chromium browser extension that adds a small panel to your Fanatical orders page. It helps you manage the game keys from your own purchases without clicking "Reveal Key" on every single game.
+FanaticalGrabber is a Chromium extension that adds a small panel to your Fanatical orders page. I built it because I got tired of clicking "Reveal Key" on every single game in a bundle.
 
 - Reveal every key in one click
 - Export keys in seven different ways
