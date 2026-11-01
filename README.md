@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎮 FanaticalGrabber
+# FanaticalGrabber
 
 **Reveal, export and redeem your Fanatical game keys from one panel.**
 
@@ -11,14 +11,14 @@
 
 [Website](https://jacob-lucado.github.io/FanaticalGrabber/) •
 [Privacy Policy](https://jacob-lucado.github.io/FanaticalGrabber/privacy.html) •
-[Install](#-installation) •
-[FAQ](#-faq)
+[Install](#installation) •
+[FAQ](#faq)
 
 </div>
 
 ---
 
-## 📖 About
+## About
 
 FanaticalGrabber is a Chromium browser extension that adds a small panel to your Fanatical orders page. It helps you manage the game keys from your own purchases without clicking "Reveal Key" on every single game.
 
@@ -31,12 +31,12 @@ FanaticalGrabber is a Chromium browser extension that adds a small panel to your
 
 ---
 
-## ✨ Features
+## Features
 
-### 🔓 Reveal All
+### Reveal All
 Clicks every "Reveal Key" button on the page for you. Clicks are spaced out slightly so the site isn't flooded with requests, and the extension waits for the keys to appear before continuing.
 
-### 📤 Export menu
+### Export menu
 A single **Export ▾** button opens a menu of formats. Any unrevealed keys are revealed first, so exports are always complete.
 
 | Format | Extension | Notes |
@@ -49,41 +49,41 @@ A single **Export ▾** button opens a menu of formats. Any unrevealed keys are 
 | Excel | `.xlsx` | Uses the bundled SheetJS library |
 | Clipboard | n/a | Copies `Game \| Key` lines, no file downloaded |
 
-### 🎟️ Steam batch redeem panel (new in 2.4)
-On Steam itself the extension becomes a batch redeem tool with a clean, modern panel. On **store.steampowered.com/account/registerkey** it sits right under the form, and on every other Steam store page it is a pulsing **Batch Redeem** bar (click it to open). Both panels can be dragged anywhere by their bar or header, and remember where you put them.
+### Steam batch redeem panel (new in 2.4)
+On Steam itself the extension becomes a batch redeem tool with its own panel. On **store.steampowered.com/account/registerkey** it sits right under the form, and on every other Steam store page it is a pulsing **Batch Redeem** bar (click it to open). Both panels can be dragged anywhere by their bar or header, and remember where you put them.
 - Paste keys (any text, they are picked out for you) or open a `.txt` file, check the login banner, and press **Redeem all**
 - **Queue for the Steam batch redeem** in the Fanatical export menu hands your revealed keys to this panel through the extension's own storage, so keys never go to any server
 - Optional **Skip games I already own**, matched by exact title for keys that came from Fanatical
 - Live progress, a per-key result list and a CSV report; stops on a Steam login problem or rate limit
 - **Price overlay** on Steam game pages: paste your Steam Value Checker link code in the panel and a card shows your best price, the all-time low and whether you own or wishlisted the game. Only the app number is sent.
 
-### 🧩 New in 2.5
+### New in 2.5
 - **Bundle check:** on a Steam bundle or package page it shows how many of the games you already own, the price per new game, and (with your link code) whether buying separately is cheaper.
 - **Checkout guard:** on the Steam cart it warns about games you already own and points out ones that are clearly cheaper at another store.
 - **Key vault:** every Steam-format key you reveal on Fanatical is remembered locally until it is redeemed. The dashboard's Batch redeem page lists them, prices them by title and loads them into the box. The Steam panel's Load button includes them too. Keys never leave your browser.
 
-### 🛒 Fanatical bundle and cart check (2.6)
+### Fanatical bundle and cart check (2.6)
 On a Fanatical bundle page or your cart, a small card at the bottom right compares what you would pay with Steam's own prices for the games you do not own yet. It says whether the deal is worth it, and ends with "You're seeing the best deals available" when you are well under Steam. If it cannot read the cart, find the games or get prices, the card says which step failed instead of staying blank. Works when you open the cart from inside Fanatical without reloading. Needs your link code for the price comparison; only game titles are sent.
 
-### 🔔 Update reminder (2.8)
+### Update reminder (2.8)
 When a newer version is out, the Fanatical and Steam panels show a small notice with a **Get the update** button (or **Restart to update** once Chrome has downloaded it). **Later** hides it for three days. The extension only asks the Steam Value Checker site for the newest version number about every six hours; no sign-in, nothing about you is sent. Web Store installs also update by themselves.
 
-### 🔗 One-click connect (2.7)
+### One-click connect (2.7)
 Sign in on the [Steam Value Checker](https://steamvaluechecker.fly.dev/) dashboard (with Steam or Discord), open **Library** and press **Connect the extension**. The dashboard hands the extension its link code directly, so there is nothing to copy or paste. The code stays in the extension's own storage and is only sent to that dashboard.
 
-### 🔑 Batch redeem from the Steam Value Checker dashboard
+### Batch redeem from the Steam Value Checker dashboard
 With the extension installed (2.3+), the dashboard's **Batch redeem** page (Games menu) can redeem pasted or uploaded Steam keys using your signed-in Steam session. Log into store.steampowered.com first. Keys go page -> extension -> Steam and never reach the dashboard's server.
 
-### 💰 Fill in what you paid (Steam purchase history)
+### Fill in what you paid (Steam purchase history)
 Open [your Steam purchase history](https://store.steampowered.com/account/history) and press **Send what I paid**. The extension loads your history, reads each single-game purchase and its price, and fills in the price on games already in your Steam Value Checker library (a Steam sync's games are matched, never duplicated), then lists any it could not match and any synced games still without a price (same link code). Game and gift purchases are read; market, in-game, wallet and refunded items are ignored; cart and bundle purchases are skipped because Steam shows one total for several games.
 
-### 🔑 Retail prices for key activations (Steam licenses)
+### Retail prices for key activations (Steam licenses)
 Open [your Steam licenses](https://store.steampowered.com/account/licenses/) and press **Record retail prices for my keys and gifts**. Gifted games are recorded at retail, marked Gifted (a tooltip in the Paid column) and left out of your spend and savings. Key activations have no price on Steam, so the bot records each game's retail price instead (only for games already in your library, and never over a price you already have). Only titles are sent.
 
-### 📤 Send to Steam Value Checker
+### Send to Steam Value Checker
 One click sends your game titles (**never your keys**) to your library in the [Steam Value Checker](https://steamvaluechecker.fly.dev/) Discord bot, with what you paid for the order. Get a link code once with `/library grabber` in Discord and paste it into the panel. The order total is split evenly across the games on the page, since Fanatical shows one total per order.
 
-### 🎟️ Redeem on Steam (Beta)
+### Redeem on Steam (Beta)
 Redeems your **already revealed** keys on the Steam account you're logged into.
 
 - Only redeems keys that are already revealed. It never reveals keys on its own
@@ -94,31 +94,31 @@ Redeems your **already revealed** keys on the Steam account you're logged into.
 - Stops automatically if you're logged out or Steam rate-limits you
 - Downloads a CSV report with the result for every key
 
-> ⚠️ **Beta:** this feature calls Steam's own redeem endpoint, which is not an official API. It can stop working if Steam changes it. Try one or two keys first.
+> **Beta:** this feature calls Steam's own redeem endpoint, which is not an official API. It can stop working if Steam changes it. Try one or two keys first.
 
-### 🧰 Other details
+### Other details
 - Live status panel that shows progress and the reason when something fails
-- Smarter game title detection
-- Collapsible panel that stays out of the way
+- Game titles are read from more than one place on the page
+- The panel collapses to a single bar
 - No servers, analytics or advertising
 
 ---
 
-## 📥 Installation
+## Installation
 
 FanaticalGrabber works on Chromium-based browsers: **Chrome, Edge, Brave, Opera, Vivaldi, Arc**. Firefox and Safari are not supported.
 
 ### Chrome Web Store
 **[Add FanaticalGrabber from the Chrome Web Store](https://chromewebstore.google.com/detail/fanaticalgrabber/kmbpdeglijkfbkifilcckkeljagcdbnb)**. It updates by itself. Brave, Opera and Vivaldi can install from the Web Store too; Edge asks you to allow extensions from other stores first.
 
-### 🔄 Updating
+### Updating
 The Web Store keeps FanaticalGrabber up to date by itself, and the panel shows a reminder when a newer version is out.
 
 The panel footer shows the installed version. 
 
 ---
 
-## ▶️ Usage
+## Usage
 
 1. Log into **fanatical.com** and open the page that lists your keys.
 2. Click the orange **FanaticalGrabber** bar to expand the panel.
@@ -155,7 +155,7 @@ Possible statuses in the report:
 
 ---
 
-## 🔐 Permissions & privacy
+## Permissions & privacy
 
 | Permission | Why it's needed |
 | --- | --- |
@@ -175,7 +175,7 @@ Full details: **[Privacy Policy](https://jacob-lucado.github.io/FanaticalGrabber
 
 ---
 
-## ❓ FAQ
+## FAQ
 
 <details>
 <summary><b>Does it send my keys anywhere?</b></summary>
@@ -221,7 +221,7 @@ It only appears on pages that contain "Reveal Key" buttons or already-revealed k
 
 ---
 
-## 🗂️ Project structure
+## Project structure
 
 ```
 FanaticalGrabber/
@@ -245,12 +245,12 @@ FanaticalGrabber/
 
 ---
 
-## 🛠️ Development
+## Development
 
 No build step is required.
 
 1. Clone the repository.
-2. Load the folder as an unpacked extension (see [Installation](#-installation)).
+2. Load the folder as an unpacked extension (see [Installation](#installation)).
 3. After editing a file, click **Reload** on the extension card and refresh the Fanatical tab.
 4. To debug the Steam requests, open the extension's **service worker** console from the extensions page.
 
@@ -258,7 +258,7 @@ The selectors that read the Fanatical page (`input[aria-label="reveal-key"]`, `a
 
 ---
 
-## 🗺️ Ideas & roadmap
+## Ideas & roadmap
 
 - [ ] Language-independent reveal button detection
 - [ ] Platform and order metadata columns in exports
@@ -271,7 +271,7 @@ Have an idea? Open an [issue](../../issues) or message [@twit_user69](https://x.
 
 ---
 
-## 🐛 Reporting problems
+## Reporting problems
 
 Please include:
 - Your browser and version
@@ -283,13 +283,13 @@ Please **don't post real game keys** in public issues.
 
 ---
 
-## ⚖️ Disclaimer
+## Disclaimer
 
 This tool automates actions on your own account for keys you have purchased. You are responsible for following the terms of service of Fanatical and Steam. Redeeming many keys quickly can trigger Steam's rate limits. The Steam redeem feature uses an undocumented endpoint and may break at any time. Use at your own risk.
 
 ---
 
-## 📄 License
+## License
 
 See the [LICENSE](LICENSE) file.
 
@@ -297,6 +297,6 @@ See the [LICENSE](LICENSE) file.
 
 <div align="center">
 
-Made by **[Jacob Lucado](https://x.com/twit_user69)** 💛
+Made by **[Jacob Lucado](https://x.com/twit_user69)**
 
 </div>
