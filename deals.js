@@ -89,7 +89,7 @@
         lines.push(`${isCart ? "Your total" : "Full bundle"}: ${fmt(price.n, cur)}.`);
         const ratio = price.n / steamTotal;
         const worth = ratio < 0.9;
-        lines.push(worth ? `👍 Worth it: about ${Math.round((1 - ratio) * 100)}% under Steam.` : ratio <= 1.05 ? "👎 Not really worth it: about the same as Steam." : `👎 Not worth it: costs more than Steam.`);
+        lines.push(worth ? `Worth it: about ${Math.round((1 - ratio) * 100)}% under Steam.` : ratio <= 1.05 ? "Not really worth it: about the same as Steam." : `Not worth it: costs more than Steam.`);
         if (worth && isCart) lines.push("You're seeing the best deals available.");
         show(isCart ? "Cart check" : "Bundle check", lines, worth ? "ok" : "bad");
     }

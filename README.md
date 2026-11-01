@@ -4,7 +4,7 @@
 
 **Reveal, export and redeem your Fanatical game keys from one panel.**
 
-![Version](https://img.shields.io/badge/version-2.8.0-ff9800)
+![Version](https://img.shields.io/badge/version-2.8.1-ff9800)
 ![Manifest](https://img.shields.io/badge/manifest-v3-107c41)
 ![Browsers](https://img.shields.io/badge/browsers-Chromium-66c0f4)
 ![Status](https://img.shields.io/badge/steam%20redeem-beta-orange)

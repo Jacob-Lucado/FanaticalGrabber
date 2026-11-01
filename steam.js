@@ -295,7 +295,7 @@
             el("div", { className: "foot", textContent: "Keys never leave your browser except to Steam. Already-handled keys are remembered and skipped. © 2026 Jacob Lucado" })));
 
     const tab = el("button", { className: "tab", innerHTML: "" });
-    tab.append(el("span", { textContent: "🎮 Batch Redeem" }));
+    tab.append(el("span", { textContent: "Batch Redeem" }));
     tab.title = "Steam batch redeem";
     window.fgUpdateNotice?.(panel.querySelector(".body"));
     let placeSteam = null;
@@ -343,7 +343,7 @@
                 const cur = pr.items[0].currency;
                 const sep = pr.items.reduce((a, i) => a + (i.best?.price ?? i.steam ?? 0), 0);
                 lines.push(`Buying the new ones separately costs about ${fmt(sep, cur)} now.`);
-                if (bundlePrice) { const good = bundlePrice < sep * 0.9; lines.push(good ? "👍 The bundle is cheaper than buying them separately." : "👎 Buying separately is about as cheap, or cheaper."); tone = good ? "ok" : "bad"; }
+                if (bundlePrice) { const good = bundlePrice < sep * 0.9; lines.push(good ? "The bundle is cheaper than buying them separately." : "Buying separately is about as cheap, or cheaper."); tone = good ? "ok" : "bad"; }
             } else if (pr?.status === "no_code") lines.push("Add your link code (batch redeem panel, price overlay) to compare with buying separately.");
         }
         infoCard("Bundle check", lines, tone);
@@ -377,11 +377,11 @@
         const mine = new Set(owned.apps);
         const dupes = [...seen].filter(([id]) => mine.has(id)).map(([, n]) => n);
         const lines = [];
-        if (dupes.length) lines.push(`⚠️ You already own: ${dupes.slice(0, 6).join(", ")}${dupes.length > 6 ? " and more" : ""}.`);
+        if (dupes.length) lines.push(`You already own: ${dupes.slice(0, 6).join(", ")}${dupes.length > 6 ? " and more" : ""}.`);
         const pr = await send({ type: "prices-for", appids: [...seen.keys()].filter(id => !mine.has(id)), cc: storeCountry() });
         if (pr?.status === "ok") {
             const cheaper = pr.items.filter(i => i.best && i.steam && i.best.shop !== "Steam" && i.best.price < i.steam * 0.9).slice(0, 5);
-            for (const i of cheaper) lines.push(`💡 ${seen.get(i.appid)} is ${fmt(i.best.price, i.currency)} at ${i.best.shop} (Steam ${fmt(i.steam, i.currency)}).`);
+            for (const i of cheaper) lines.push(`${seen.get(i.appid)} is ${fmt(i.best.price, i.currency)} at ${i.best.shop} (Steam ${fmt(i.steam, i.currency)}).`);
         }
         if (lines.length) infoCard("Before you check out", lines, dupes.length ? "bad" : "");
     }

@@ -170,7 +170,7 @@
     // To add a format, just add an entry here.
     const FORMATS = [
         {
-            id: "txt", icon: "📄", label: "Text (.txt)", ext: "txt", mime: "text/plain",
+            id: "txt", icon: "", label: "Text (.txt)", ext: "txt", mime: "text/plain",
             build: rows => [
                 "FanaticalGrabber",
                 "© 2026 Jacob Lucado",
@@ -194,19 +194,19 @@
             ].join("\n")
         },
         {
-            id: "csv", icon: "🧾", label: "CSV (.csv)", ext: "csv", mime: "text/csv",
+            id: "csv", icon: "", label: "CSV (.csv)", ext: "csv", mime: "text/csv",
             // BOM so Excel reads UTF-8 titles correctly
             build: rows => "\uFEFF" + [rows.some(r => r.paid != null) ? "Game,Key,Paid" : "Game,Key", ...rows.map(r => `${csvCell(r.title)},${csvCell(r.key)}` + (rows.some(x => x.paid != null) ? `,${r.paid ?? ""}` : ""))].join("\r\n") + "\r\n"
         },
         {
-            id: "json", icon: "🧩", label: "JSON (.json)", ext: "json", mime: "application/json",
+            id: "json", icon: "", label: "JSON (.json)", ext: "json", mime: "application/json",
             build: rows => JSON.stringify(
                 { exportedAt: new Date().toISOString(), count: rows.length, keys: rows.map(r => ({ game: r.title, key: r.key, ...(r.paid != null ? { paid: r.paid } : {}) })) },
                 null, 2
             )
         },
         {
-            id: "md", icon: "📝", label: "Markdown (.md)", ext: "md", mime: "text/markdown",
+            id: "md", icon: "", label: "Markdown (.md)", ext: "md", mime: "text/markdown",
             build: rows => [
                 "# Fanatical Keys",
                 "",
@@ -219,7 +219,7 @@
             ].join("\n")
         },
         {
-            id: "html", icon: "🌐", label: "HTML page (.html)", ext: "html", mime: "text/html",
+            id: "html", icon: "", label: "HTML page (.html)", ext: "html", mime: "text/html",
             build: rows => `<!doctype html>
 <html><head><meta charset="utf-8"><title>Fanatical Keys</title>
 <style>body{font-family:Segoe UI,sans-serif;margin:2rem}table{border-collapse:collapse}
@@ -486,7 +486,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
     `;
 
     function menuItem(id, icon, label) {
-        return `<button class="fg-item" data-format="${id}">${icon} ${label}</button>`;
+        return `<button class="fg-item" data-format="${id}">${label}</button>`;
     }
 
     function createPanel() {
@@ -501,32 +501,32 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
         const panel = document.createElement("div");
         panel.id = "fg-panel";
         panel.innerHTML = `
-            <div id="fg-header" class="collapsed"><span>🎮 FanaticalGrabber</span></div>
+            <div id="fg-header" class="collapsed"><span>FanaticalGrabber</span></div>
             <div id="fg-body">
                 <div id="fg-status">
                     <div id="fg-status-text">Status: Ready</div>
                     <div id="fg-keys-count">Keys Revealed: 0</div>
                 </div>
 
-                <button id="fg-export" aria-haspopup="true" aria-expanded="false">🚀 Export ▾</button>
+                <button id="fg-export" aria-haspopup="true" aria-expanded="false">Export ▾</button>
                 <div id="fg-menu" role="menu">
-                    <button class="fg-item fg-parent" id="fg-files" aria-expanded="false">💾 Save as file ▾</button>
+                    <button class="fg-item fg-parent" id="fg-files" aria-expanded="false">Save as file ▾</button>
                     <div id="fg-sub">
                         ${FORMATS.map(f => menuItem(f.id, f.icon, f.label)).join("")}
-                        ${menuItem("xlsx", "📊", "Excel (.xlsx)")}
+                        ${menuItem("xlsx", "", "Excel (.xlsx)")}
                     </div>
                     <div class="fg-sep"></div>
-                    ${menuItem("clipboard", "📋", "Copy to clipboard")}
+                    ${menuItem("clipboard", "", "Copy to clipboard")}
                     ${menuItem("queue", "⏩", "Queue for the Steam batch redeem")}
-                    ${menuItem("svc", "📤", "Send to Steam Value Checker")}
+                    ${menuItem("svc", "", "Send to Steam Value Checker")}
                 </div>
 
-                <button id="fg-reveal">🔓 Reveal All</button>
-                <button id="fg-redeem" title="Beta: may fail if Steam changes or rate-limits you">🎟️ Redeem on Steam (Beta)</button>
+                <button id="fg-reveal">Reveal All</button>
+                <button id="fg-redeem" title="Beta: may fail if Steam changes or rate-limits you">Redeem on Steam (Beta)</button>
                 <button id="fg-stop" style="display:none">⏹ Stop</button>
 
                 <a id="fg-twitter" href="https://x.com/twit_user69" target="_blank" rel="noopener noreferrer">
-                    🐦 Follow Jacob Lucado
+                    Follow Jacob Lucado
                 </a>
                 <div id="fg-footer">© 2026 Jacob Lucado<br>FanaticalGrabber v${version()}</div>
             </div>
@@ -544,7 +544,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
         const setSub = open => {
             sub.classList.toggle("open", open);
             filesBtn.setAttribute("aria-expanded", String(open));
-            filesBtn.textContent = open ? "💾 Save as file ▴" : "💾 Save as file ▾";
+            filesBtn.textContent = open ? "Save as file ▴" : "Save as file ▾";
         };
         filesBtn.addEventListener("click", e => { e.stopPropagation(); setSub(!sub.classList.contains("open")); place(); });
         const setMenu = open => {
