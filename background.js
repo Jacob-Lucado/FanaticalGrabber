@@ -81,7 +81,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true; // keep the channel open for the async response
 });
 // One-click send to the Steam Value Checker bot. Only game titles go out (never keys), with the member's own link code.
-const SVC = "https://steamvaluechecker.fly.dev";
+const SVC = "https://steamvaluechecker.com";
 async function sendToChecker(token, titles, paid = [], mode = null) {
     if (!/^svcg_[A-Za-z0-9_-]{43}$/.test(token)) return { status: "bad_code", message: "That does not look like a link code. Use /library grabber in Discord." };
     const seen = new Set();

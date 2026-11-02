@@ -69,7 +69,7 @@ On a Fanatical bundle page or your cart, a small card at the bottom right compar
 When a newer version is out, the Fanatical and Steam panels show a small notice with a **Get the update** button (or **Restart to update** once Chrome has downloaded it). **Later** hides it for three days. The extension only asks the Steam Value Checker site for the newest version number about every six hours; no sign-in, nothing about you is sent. Web Store installs also update by themselves.
 
 ### One-click connect (2.7)
-Sign in on the [Steam Value Checker](https://steamvaluechecker.fly.dev/) dashboard (with Steam or Discord), open **Library** and press **Connect the extension**. The dashboard hands the extension its link code directly, so there is nothing to copy or paste. The code stays in the extension's own storage and is only sent to that dashboard.
+Sign in on the [Steam Value Checker](https://steamvaluechecker.com/) dashboard (with Steam or Discord), open **Library** and press **Connect the extension**. The dashboard hands the extension its link code directly, so there is nothing to copy or paste. The code stays in the extension's own storage and is only sent to that dashboard.
 
 ### Batch redeem from the Steam Value Checker dashboard
 With the extension installed (2.3+), the dashboard's **Batch redeem** page (Games menu) can redeem pasted or uploaded Steam keys using your signed-in Steam session. Log into store.steampowered.com first. Keys go page -> extension -> Steam and never reach the dashboard's server.
@@ -81,7 +81,7 @@ Open [your Steam purchase history](https://store.steampowered.com/account/histor
 Open [your Steam licenses](https://store.steampowered.com/account/licenses/) and press **Record retail prices for my keys and gifts**. Gifted games are recorded at retail, marked Gifted (a tooltip in the Paid column) and left out of your spend and savings. Key activations have no price on Steam, so the bot records each game's retail price instead (only for games already in your library, and never over a price you already have). Only titles are sent.
 
 ### Send to Steam Value Checker
-One click sends your game titles (**never your keys**) to your library in the [Steam Value Checker](https://steamvaluechecker.fly.dev/) Discord bot, with what you paid for the order. Get a link code once with `/library grabber` in Discord and paste it into the panel. The order total is split evenly across the games on the page, since Fanatical shows one total per order.
+One click sends your game titles (**never your keys**) to your library in the [Steam Value Checker](https://steamvaluechecker.com/) Discord bot, with what you paid for the order. Get a link code once with `/library grabber` in Discord and paste it into the panel. The order total is split evenly across the games on the page, since Fanatical shows one total per order.
 
 ### Redeem on Steam (Beta)
 Redeems your **already revealed** keys on the Steam account you're logged into.

@@ -149,7 +149,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
     <a href="#features">Features</a><a href="#install">Install</a><a href="#faq">FAQ</a>
     
     <a href="privacy.html">Privacy</a>
-    <a class="xlink" href="https://steamvaluechecker.fly.dev/" target="_blank" rel="noopener noreferrer">Steam Value Checker ↗</a>
+    <a class="xlink" href="https://steamvaluechecker.com/" target="_blank" rel="noopener noreferrer">Steam Value Checker ↗</a>
   </nav>
 </div></header>
 
@@ -234,7 +234,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
     </div>
     <div class="card" style="grid-column:1/-1">
       <h3>Send to Steam Value Checker <span class="tag">New</span></h3>
-      <p>Sends the game titles (never the keys) to the <a href="https://steamvaluechecker.fly.dev/" rel="noopener noreferrer" target="_blank">Steam Value Checker</a> Discord bot, with what you paid. Run <code>/library grabber</code> in Discord once to get a link code, then paste it into the panel.</p>
+      <p>Sends the game titles (never the keys) to the <a href="https://steamvaluechecker.com/" rel="noopener noreferrer" target="_blank">Steam Value Checker</a> Discord bot, with what you paid. Run <code>/library grabber</code> in Discord once to get a link code, then paste it into the panel.</p>
     </div>
     <div class="card steam" style="grid-column:1/-1">
       <h3>Batch Redeem <span class="tag">New panel</span></h3>
@@ -382,7 +382,7 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 document.addEventListener('DOMContentLoaded', () => {
   const out = document.getElementById('visits');
   if (!out) return;
-  const BASE = 'https://steamvaluechecker.fly.dev/api/visits/fanaticalgrabber';
+  const BASE = 'https://steamvaluechecker.com/api/visits/fanaticalgrabber';
   const rnd = new Uint8Array(12); (window.crypto || {}).getRandomValues ? crypto.getRandomValues(rnd) : rnd.forEach((_, i) => { rnd[i] = Math.random() * 256; });
   let id = Array.from(rnd, b => (b % 36).toString(36)).join('');
   // Keep the same id across refreshes of this tab so reloading doesn't count as another viewer.
