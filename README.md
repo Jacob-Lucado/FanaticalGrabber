@@ -68,6 +68,16 @@ On a Fanatical bundle page or your cart, a small card at the bottom right compar
 ### Update reminder (2.8)
 When a newer version is out, the Fanatical and Steam panels show a small notice with a **Get the update** button (or **Restart to update** once Chrome has downloaded it). **Later** hides it for three days. The extension only asks the Steam Value Checker site for the newest version number about every six hours; no sign-in, nothing about you is sent. Web Store installs also update by themselves.
 
+### New in 2.9: the Steam Value Checker bot, built into Steam
+**These features all need the extension to be linked with the Steam Value Checker Discord bot.** Without the link the extension only reveals and redeems keys. To link: sign in with Discord at [steamvaluechecker.com](https://steamvaluechecker.com/), have the bot in one of your servers, open **Library** and press **Connect the extension**. The extension tells you this itself: the toolbar icon shows a **!** until you link, and Steam store pages show a card with a **Link now** button.
+
+- **Playtest and demo badge:** on a Steam game page a green badge links to a playtest, beta or demo that is open right now.
+- **Your server's games:** the card shows how many members of your server who share their library own the game, and how many are playing it right now. Only counts, only people who opted in with `/alerts share`.
+- **Add to wishlist:** one click from the store page. If you turned on your public wishlist page, it shows there too (and in your stream's gift-me card).
+- **Spotlight on stream:** puts the game and its price on your Steam Value Checker stream overlay for ten minutes. Make your overlay link first on the dashboard's Streamer hub.
+- **Game club:** the card says when the game is this month's server pick.
+- **Toolbar badge and popup:** a count of new free games, new playtests and unread bot alerts, checked every half hour. Open the popup to see them. It adds the `alarms` permission, which Chrome does not warn about.
+
 ### One-click connect (2.7)
 Sign in on the [Steam Value Checker](https://steamvaluechecker.com/) dashboard (with Steam or Discord), open **Library** and press **Connect the extension**. The dashboard hands the extension its link code directly, so there is nothing to copy or paste. The code stays in the extension's own storage and is only sent to that dashboard.
 

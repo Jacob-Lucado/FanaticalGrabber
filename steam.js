@@ -90,6 +90,9 @@
     .card .tag.w { color: var(--accent); background: rgba(77,163,255,.18); }
     .card .x { float: right; }
     .card.wide { width: 330px; } .card .line { margin: 4px 0; line-height: 1.4; }
+    .card .tag.p { text-decoration: none; color: #04150d; background: var(--good); }
+    button.b.small { height: 30px; padding: 0 13px; font-size: 13px; }
+    .card .row { margin-top: 10px; }
     .card.ok { border-color: rgba(61,220,151,.4); } .card.bad { border-color: rgba(255,107,107,.4); }
     `;
 
@@ -344,7 +347,7 @@
                 const sep = pr.items.reduce((a, i) => a + (i.best?.price ?? i.steam ?? 0), 0);
                 lines.push(`Buying the new ones separately costs about ${fmt(sep, cur)} now.`);
                 if (bundlePrice) { const good = bundlePrice < sep * 0.9; lines.push(good ? "The bundle is cheaper than buying them separately." : "Buying separately is about as cheap, or cheaper."); tone = good ? "ok" : "bad"; }
-            } else if (pr?.status === "no_code") lines.push("Add your link code (batch redeem panel, price overlay) to compare with buying separately.");
+            } else if (pr?.status === "no_code") lines.push("Link with the Steam Value Checker bot to compare with buying separately: sign in with Discord at steamvaluechecker.com, open Library and press Connect the extension.");
         }
         infoCard("Bundle check", lines, tone);
     }
@@ -387,18 +390,60 @@
     }
 
     // ---------- price overlay on a store page ----------
+    const appName = () => (document.getElementById("appHubAppName")?.textContent || document.querySelector('meta[property="og:title"]')?.content || document.title || "").replace(/^Save \d+% on /i, "").replace(/ on Steam$/i, "").trim().slice(0, 100);
+    const DASH = "https://steamvaluechecker.com";
+    const openDash = path => window.open(DASH + path, "_blank", "noopener,noreferrer");
+
+    /** Shown instead of the price card when there is no (working) link code. Most features need the link, so say so plainly. */
+    async function linkCard(bad) {
+        const { linkHintHidden = 0 } = await chrome.storage.local.get("linkHintHidden");
+        if (Date.now() - linkHintHidden < 7 * 86400_000) return;
+        const close = el("button", { className: "x", textContent: "×", "aria-label": "Close" });
+        const go = el("button", { className: "b go", type: "button", textContent: "Link now" });
+        const card = el("div", { className: "card wide bad" }, close, el("h4", { textContent: "FanaticalGrabber" }),
+            el("div", { className: "line" }, el("b", { textContent: bad ? "Your link with Steam Value Checker stopped working." : "Link with the Steam Value Checker bot to use the rest of this extension." })),
+            el("div", { className: "line", textContent: "It switches on prices and your library status here, playtest and demo badges, how many people in your server own this game, one-click wishlist and stream spotlight. You need to sign in with Discord on the dashboard, with the bot in one of your servers. Only game names are sent, never keys." }),
+            el("div", { className: "row" }, go));
+        go.addEventListener("click", () => openDash("/#/library"));
+        close.addEventListener("click", async () => { await chrome.storage.local.set({ linkHintHidden: Date.now() }); card.remove(); });
+        root.append(card);
+    }
+
     async function overlay() {
         if (!appMatch) return;
-        const r = await send({ type: "game-info", appid: appMatch[1], cc: storeCountry() });
+        const name = appName();
+        const r = await send({ type: "game-info", appid: appMatch[1], cc: storeCountry(), name });
+        if (r && r.status === "no_code") return linkCard(false);
+        if (r && r.status === "bad_code") return linkCard(true);
         if (!r || r.status !== "ok" || !r.found) return;
         const money = n => (n == null ? "–" : new Intl.NumberFormat(undefined, { style: "currency", currency: r.currency || "USD" }).format(n));
         const close = el("button", { className: "x", textContent: "×", "aria-label": "Close" });
-        const card = el("div", { className: "card" }, close, el("h4", { textContent: "Steam Value Checker" }),
+        const note = el("div", { className: "line msg", hidden: true });
+        const say = (text, ok) => { note.hidden = false; note.textContent = text; note.style.color = ok ? "var(--good)" : "var(--warn)"; };
+        const act = (label, fn) => { const b = el("button", { className: "b small", type: "button", textContent: label }); b.addEventListener("click", async () => { b.disabled = true; try { await fn(b); } finally { b.disabled = false; } }); return b; };
+        const buttons = [];
+        if (!r.wishlisted) buttons.push(act("Add to wishlist", async b => {
+            const x = await send({ type: "wishlist-add", appid: appMatch[1], name });
+            if (x.status === "ok" || x.status === "added") { b.remove(); say(x.public ? "Added. It shows on your public wishlist page." : "Added to your wishlist.", true); }
+            else say(x.message || "Could not add it right now.", false);
+        }));
+        buttons.push(act("Spotlight on stream", async () => {
+            const x = await send({ type: "spotlight", appid: appMatch[1], name, cc: storeCountry() });
+            if (x.status === "ok") say("On your stream overlay for the next 10 minutes.", true);
+            else if (x.status === "no_overlay") say("Make your overlay link first (Streamer hub on the dashboard).", false);
+            else say(x.message || "Could not do that right now.", false);
+        }));
+        const soc = r.social;
+        const card = el("div", { className: "card wide" }, close, el("h4", { textContent: "Steam Value Checker" }),
             r.owned && el("span", { className: "tag", textContent: "In your library" }),
             r.wishlisted && el("span", { className: "tag w", textContent: "On your wishlist" }),
+            r.playtest && el("a", { className: "tag p", href: r.playtest.url, target: "_blank", rel: "noopener noreferrer", textContent: r.playtest.label + " open: " + r.playtest.source }),
             el("div", {}, "Best price now ", el("span", { className: "big", textContent: money(r.best?.price ?? r.steam) })),
             r.best?.shop && el("div", { textContent: "at " + r.best.shop }),
-            r.atl != null && el("div", { textContent: "All-time low " + money(r.atl) + (r.best && r.best.price <= r.atl ? " (matched now)" : "") }));
+            r.atl != null && el("div", { textContent: "All-time low " + money(r.atl) + (r.best && r.best.price <= r.atl ? " (matched now)" : "") }),
+            soc && soc.sharing > 0 && el("div", { className: "line", textContent: `${soc.owners} of ${soc.sharing} server member${soc.sharing === 1 ? "" : "s"} who share own this` + (soc.playing ? `, ${soc.playing} playing it now` : "") }),
+            soc && soc.club && el("div", { className: "line", textContent: `📚 This month's game club pick (${soc.club.finished} finished)` }),
+            el("div", { className: "row" }, buttons), note);
         close.addEventListener("click", () => card.remove());
         root.append(card);
     }

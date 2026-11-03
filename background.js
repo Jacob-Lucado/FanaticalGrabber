@@ -155,11 +155,25 @@ async function checkOwned(titles) {
 
 const cleanCc = cc => (/^[A-Za-z]{2}$/.test(String(cc ?? "")) ? String(cc).toUpperCase() : undefined);
 
-async function gameInfo(appid, cc) {
+/** A button press that changes something (wishlist, spotlight). Only the app number and the game's name go out, with the member's link code. */
+async function svcPost(path, body) {
     const { svcToken } = await chrome.storage.local.get("svcToken");
     if (!svcToken) return { status: "no_code" };
     let res;
-    try { res = await fetch(`${SVC}/api/grabber/game?appid=${encodeURIComponent(appid)}${cleanCc(cc) ? "&cc=" + cleanCc(cc) : ""}`, { headers: { Authorization: `Bearer ${svcToken}` } }); }
+    try { res = await fetch(`${SVC}${path}`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${svcToken}` }, body: JSON.stringify(body) }); }
+    catch { return { status: "network" }; }
+    if (res.status === 401) return { status: "bad_code" };
+    let data = {};
+    try { data = await res.json(); } catch { /* not json */ }
+    if (!res.ok) return { status: "error", message: data.error || `HTTP ${res.status}` };
+    return { status: data.status ?? "ok", ...data };
+}
+
+async function gameInfo(appid, cc, name) {
+    const { svcToken } = await chrome.storage.local.get("svcToken");
+    if (!svcToken) return { status: "no_code" };
+    let res;
+    try { res = await fetch(`${SVC}/api/grabber/game?appid=${encodeURIComponent(appid)}${cleanCc(cc) ? "&cc=" + cleanCc(cc) : ""}${name ? "&name=" + encodeURIComponent(String(name).slice(0, 100)) : ""}`, { headers: { Authorization: `Bearer ${svcToken}` } }); }
     catch { return { status: "network" }; }
     if (res.status === 401) return { status: "bad_code" };
     if (!res.ok) return { status: "error" };
@@ -170,7 +184,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (sender.id !== chrome.runtime.id) return;
     const job = msg?.type === "session-check" ? sessionCheck()
         : msg?.type === "check-owned" ? checkOwned(Array.isArray(msg.titles) ? msg.titles.map(String) : [])
-        : msg?.type === "game-info" ? gameInfo(Number(msg.appid), msg.cc)
+        : msg?.type === "game-info" ? gameInfo(Number(msg.appid), msg.cc, msg.name)
+        : msg?.type === "wishlist-add" ? svcPost("/api/grabber/wishlist", { appid: Number(msg.appid), name: String(msg.name ?? "") })
+        : msg?.type === "spotlight" ? svcPost("/api/grabber/spotlight", { appid: Number(msg.appid), name: String(msg.name ?? ""), cc: cleanCc(msg.cc) })
         : null;
     if (!job) return;
     job.then(sendResponse).catch(err => sendResponse({ status: "error", message: err.message }));
@@ -262,4 +278,42 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg?.type === "update-status") { updateStatus().then(sendResponse).catch(() => sendResponse(null)); return true; }
     if (msg?.type === "update-snooze") { chrome.storage.local.set({ updSnooze: Date.now() + UPDATE_SNOOZE_MS }).then(() => sendResponse({ ok: true })); return true; }
     if (msg?.type === "update-apply") { sendResponse({ ok: true }); setTimeout(() => chrome.runtime.reload(), 200); }
+});
+
+
+// ---------- Toolbar badge ----------
+// Every half hour: how many new free games, playtests and unread bot alerts there are since the member last opened the popup.
+// Without a link code the badge shows "!" so people know most features are switched off until they link with the bot.
+const BADGE_ALARM = "svc-badge";
+async function refreshBadge() {
+    const { svcToken, badgeSeen } = await chrome.storage.local.get(["svcToken", "badgeSeen"]);
+    const set = async (text, color, title) => { try { await chrome.action.setBadgeText({ text }); await chrome.action.setBadgeBackgroundColor({ color }); await chrome.action.setTitle({ title }); } catch { /* no toolbar */ } };
+    if (!svcToken) { await chrome.storage.local.set({ badgeNow: { state: "no_code" } }); return set("!", "#f2b84b", "FanaticalGrabber: link with the Steam Value Checker bot to switch on prices, playtests and more"); }
+    let res;
+    try { res = await fetch(`${SVC}/api/grabber/badge`, { headers: { Authorization: `Bearer ${svcToken}` } }); } catch { return; }
+    if (res.status === 401) { await chrome.storage.local.set({ badgeNow: { state: "bad_code" } }); return set("!", "#ff6b6b", "FanaticalGrabber: your link code stopped working. Link again on the dashboard"); }
+    if (!res.ok) return;
+    const d = await res.json(), seen = badgeSeen || { free: [], playtests: [] };
+    const newFree = d.free.filter(x => !seen.free.includes(x)).length, newTests = d.playtests.filter(x => !seen.playtests.includes(x)).length, unread = Number(d.unread) || 0;
+    await chrome.storage.local.set({ badgeNow: { state: "ok", free: d.free, playtests: d.playtests, newFree, newTests, unread, at: Date.now() } });
+    const n = newFree + newTests + unread;
+    await set(n ? String(Math.min(n, 99)) : "", "#4da3ff", n ? `Steam Value Checker: ${newFree} new free, ${newTests} new playtests, ${unread} unread alerts` : "FanaticalGrabber");
+}
+chrome.alarms?.create(BADGE_ALARM, { periodInMinutes: 30 });
+chrome.alarms?.onAlarm.addListener(a => { if (a.name === BADGE_ALARM) refreshBadge(); });
+chrome.runtime.onInstalled.addListener(() => { chrome.alarms?.create(BADGE_ALARM, { periodInMinutes: 30 }); refreshBadge(); });
+chrome.runtime.onStartup.addListener(refreshBadge);
+chrome.storage.onChanged.addListener((c, area) => { if (area === "local" && c.svcToken) refreshBadge(); }); // linking or unlinking updates it straight away
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (sender.id !== chrome.runtime.id) return;
+    if (msg?.type === "badge-status") { chrome.storage.local.get("badgeNow").then(r => sendResponse(r.badgeNow || { state: "unknown" })); return true; }
+    if (msg?.type === "badge-seen") {
+        chrome.storage.local.get("badgeNow").then(async r => {
+            const b = r.badgeNow;
+            if (b?.state === "ok") { await chrome.storage.local.set({ badgeSeen: { free: b.free, playtests: b.playtests }, badgeNow: { ...b, newFree: 0, newTests: 0 } }); await chrome.action.setBadgeText({ text: b.unread ? String(Math.min(b.unread, 99)) : "" }).catch(() => {}); }
+            sendResponse({ ok: true });
+        });
+        return true;
+    }
+    if (msg?.type === "badge-refresh") { refreshBadge().then(() => sendResponse({ ok: true })); return true; }
 });

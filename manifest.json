@@ -1,13 +1,19 @@
 {
   "manifest_version": 3,
   "name": "FanaticalGrabber",
-  "version": "2.8.2",
-  "description": "Reveal, export and batch-redeem your game keys. Adds a batch redeem panel on Steam.",
+  "version": "2.9.0",
+  "description": "Reveal, export and batch-redeem your game keys. Adds prices, playtests and your server's games to Steam, with the Steam Value Checker bot.",
   "permissions": [
     "clipboardWrite",
     "storage",
-    "cookies"
+    "cookies",
+    "alarms"
   ],
+  "action": {
+    "default_title": "FanaticalGrabber",
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icon16.png", "48": "icon48.png" }
+  },
   "host_permissions": [
     "https://store.steampowered.com/*",
     "https://steamvaluechecker.com/*",

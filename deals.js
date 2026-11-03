@@ -79,7 +79,7 @@
         if (have.length) lines.push(`You already own ${have.length}: ${have.slice(0, 4).map(x => x.t).join(", ")}${have.length > 4 ? " and more" : ""}.`);
         if (!fresh.length) { show(isCart ? "Cart check" : "Bundle check", [...lines, "You own everything here, so it is not worth buying."], "bad"); return; }
         const pr = await send({ type: "prices-for", appids: fresh.map(x => x.id), cc });
-        if (pr?.status === "no_code") { show("Price check", ["Add your Steam Value Checker link code (in the Steam page's batch redeem panel) to compare with Steam prices."], ""); return; }
+        if (pr?.status === "no_code") { show("Price check", ["Link with the Steam Value Checker bot to compare with Steam prices: sign in with Discord at steamvaluechecker.com, open Library and press Connect the extension."], ""); return; }
         if (pr?.status !== "ok") { if (isCart) show("Cart check", ["Could not get Steam prices right now."], ""); return; }
         const priced = pr.items.filter(i => i.steam > 0);
         if (!priced.length) { if (isCart) show("Cart check", [...lines, "Steam shows no price for these games, so there is nothing to compare with."], ""); return; }
