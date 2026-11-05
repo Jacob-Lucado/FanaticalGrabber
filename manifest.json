@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FanaticalGrabber",
   "version": "2.9.1",
-  "description": "Reveal, export and batch-redeem your game keys. Adds prices, playtests and your server's games to Steam, with the Steam Value Checker bot.",
+  "description": "Reveal, export and batch-redeem your game keys, and check bundle and Steam prices with the free Steam Value Checker bot.",
   "permissions": [
     "clipboardWrite",
     "storage",
