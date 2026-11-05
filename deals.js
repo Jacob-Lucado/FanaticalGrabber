@@ -43,7 +43,18 @@
             const last = els[els.length - 1];
             return last ? parse(last.textContent) : null;
         }
-        const all = [...document.querySelectorAll('[class*="price"]')].map(e => parse(e.textContent)).filter(Boolean);
+        // The crossed-out "was" price is always the biggest number on the page, so it must never be read: skip anything struck through
+        // (a <s>/<del>, a line-through style on it or just above it, or a class that says old/was/regular).
+        const struck = e => {
+            for (let x = e, n = 0; x && x !== document.body && n < 4; x = x.parentElement, n++) {
+                if (/^(S|DEL|STRIKE)$/.test(x.tagName) || /(^|[\s_-])(old|was|regular|original|strike|crossed|before|rrp|msrp|list)([\s_-]|$)/i.test(String(x.className?.baseVal ?? x.className ?? ""))) return true;
+                try { if (/line-through/.test(getComputedStyle(x).textDecorationLine)) return true; } catch { /* detached */ }
+            }
+            return false;
+        };
+        // A wrapper holding both prices is read without its crossed-out part.
+        const live = e => { const c = e.cloneNode(true); const src = [e, ...e.querySelectorAll("*")], dst = [c, ...c.querySelectorAll("*")]; src.forEach((x, i) => { if (i && struck(x)) dst[i].remove?.(); }); return c.textContent; };
+        const all = [...document.querySelectorAll('[class*="price"]')].filter(e => !struck(e)).map(e => parse(live(e))).filter(Boolean);
         return all.length ? all.reduce((a, b) => (b.n > a.n ? b : a)) : null; // the top tier, i.e. the whole bundle
     };
 
