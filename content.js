@@ -252,7 +252,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
     function exportAs(formatId) {
         return run("Export", async () => {
             await revealKeys();
-            const rows = collectKeys();
+            let rows = collectKeys();
             if (!rows.length) return setStatus("No keys found", 0);
 
             if (formatId === "svc") return sendToChecker(rows);
@@ -267,6 +267,21 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
                 return setStatus(`Queued ${steamRows.length} key${steamRows.length === 1 ? "" : "s"}. Open Steam's Activate a Product page to redeem them all`, rows.length);
             }
 
+            // "Only new keys": leave out keys that an earlier export already wrote out, so a second export is just what's new.
+            const fileLike = formatId !== "svc" && formatId !== "queue";
+            const { onlyNew = false, exportedKeys = {} } = await chrome.storage.local.get(["onlyNew", "exportedKeys"]);
+            let rows2 = rows;
+            if (onlyNew) {
+                rows2 = rows.filter(r => !exportedKeys[String(r.key).trim().toUpperCase()]);
+                if (!rows2.length) return setStatus("Nothing new: every key here was already exported", rows.length);
+                if (rows2.length < rows.length) setStatus(`Skipping ${rows.length - rows2.length} already exported`, rows2.length);
+            }
+            rows = rows2;
+            if (fileLike) {
+                const stamp = new Date().toISOString();
+                for (const r of rows) exportedKeys[String(r.key).trim().toUpperCase()] = stamp;
+                chrome.storage.local.set({ exportedKeys }).catch(() => {});
+            }
             setStatus(`Exporting ${formatId.toUpperCase()}...`, rows.length);
 
             if (formatId === "xlsx") {
@@ -469,6 +484,8 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
 
         #fg-menu { display: none; margin: -2px 0 8px; background: #2a2a2a; border-radius: 6px; overflow: hidden; }
         #fg-menu.open { display: block; }
+        #fg-onlynew { display: flex; gap: 8px; align-items: center; padding: 9px 12px; font-size: 12.5px; color: #ddd; cursor: pointer; }
+        #fg-onlynew input { width: auto; margin: 0; }
         #fg-menu button.fg-item { background: transparent; color: #eee; text-align: left; margin: 0;
             border-radius: 0; font-weight: 600; padding: 9px 12px; border-bottom: 1px solid #333; }
         #fg-menu button.fg-item:last-child { border-bottom: none; }
@@ -519,6 +536,9 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
                     ${menuItem("clipboard", "", "Copy to clipboard")}
                     ${menuItem("queue", "⏩", "Queue for the Steam batch redeem")}
                     ${menuItem("svc", "", "Send to Steam Value Checker")}
+                    <div class="fg-sep"></div>
+                    <label id="fg-onlynew" title="Leave out keys that an earlier export already saved"><input type="checkbox" id="fg-onlynew-box"> Only keys I haven't exported</label>
+                    <button class="fg-item" id="fg-forget" type="button">Forget what I've exported</button>
                 </div>
 
                 <button id="fg-reveal">Reveal All</button>
@@ -570,6 +590,17 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
             if (!item) return;
             setMenu(false);
             exportAs(item.dataset.format);
+        });
+
+        const onlyNew = panel.querySelector("#fg-onlynew-box");
+        chrome.storage.local.get("onlyNew").then(v => { onlyNew.checked = Boolean(v.onlyNew); }).catch(() => {});
+        onlyNew.addEventListener("change", () => chrome.storage.local.set({ onlyNew: onlyNew.checked }).catch(() => {}));
+        panel.querySelector("#fg-forget").addEventListener("click", async () => {
+            const { exportedKeys = {} } = await chrome.storage.local.get("exportedKeys");
+            const n = Object.keys(exportedKeys).length;
+            if (n && !window.confirm(`Forget the ${n} key${n === 1 ? "" : "s"} you've exported? The next export will include them again.`)) return;
+            await chrome.storage.local.remove("exportedKeys");
+            setStatus(n ? `Forgot ${n} exported key${n === 1 ? "" : "s"}` : "Nothing to forget");
         });
 
         panel.querySelector("#fg-reveal").addEventListener("click", revealAll);

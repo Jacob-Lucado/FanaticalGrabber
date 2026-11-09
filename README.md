@@ -4,7 +4,7 @@
 
 **Reveal, export and redeem your Fanatical keys without all the clicking.**
 
-![Version](https://img.shields.io/badge/version-2.9.1-ff9800)
+![Version](https://img.shields.io/badge/version-2.10.0-ff9800)
 ![Manifest](https://img.shields.io/badge/manifest-v3-107c41)
 ![Browsers](https://img.shields.io/badge/browsers-Chromium-66c0f4)
 ![Status](https://img.shields.io/badge/steam%20redeem-beta-orange)
@@ -38,6 +38,8 @@ Clicks every "Reveal Key" button on the page for you. Clicks are spaced out slig
 
 ### Export menu
 A single **Export ▾** button opens a menu of formats. Any unrevealed keys are revealed first, so exports are always complete.
+
+Tick **Only keys I haven't exported** in that menu and a second export contains just what is new. The extension remembers exported keys in your browser only; **Forget what I've exported** clears the list.
 
 | Format | Extension | Notes |
 | --- | --- | --- |
