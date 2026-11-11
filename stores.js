@@ -7,6 +7,20 @@
     const THIS_SHOP = /humblebundle/.test(HOST) ? "humble" : /gog\.com/.test(HOST) ? "gog" : /epicgames/.test(HOST) ? "epic" : /greenmangaming/.test(HOST) ? "green man" : "";
     const GAME_PAGE = [/humblebundle\.com\/store\/[^/?#]+/, /gog\.com\/(?:[a-z-]+\/)?game\/[^/?#]+/, /epicgames\.com\/(?:[a-z-]+\/)?p\/[^/?#]+/, /greenmangaming\.com\/(?:[a-z-]+\/)?games\/[^/?#]+/];
     const onGamePage = () => GAME_PAGE.some(re => re.test(location.href));
+    const onBundlePage = () => /humblebundle\.com\/games\/[^/?#]+/.test(location.href);
+    const parseMoney = t => { const m = /([$\u20ac\u00a3])\s?(\d[\d.,]*)/.exec(String(t ?? "")); if (!m) return null; const n = Number(m[2].replace(/,(\d{2})$/, ".$1").replace(/,/g, "")); return Number.isFinite(n) ? n : null; };
+    // The games in a bundle: the item names in its tiers. Priced from the tier headings; the top tier is the whole bundle.
+    const bundleTitles = () => {
+        const seen = new Set();
+        for (const e of document.querySelectorAll('[class*="item-title"],[class*="tier-item"] h2,[class*="tier-item"] h3,[class*="tier-item-title"],[class*="game-box"] [class*="title"]')) {
+            const t = clean(e.textContent); if (t && t.length < 90 && !parseMoney(t)) seen.add(t);
+        }
+        return [...seen].slice(0, 30);
+    };
+    const bundlePrice = () => {
+        const all = [...document.querySelectorAll('[class*="tier"] [class*="price"],[class*="tier-price"],[class*="price-button"],[class*="add-to-cart"],button')].map(e => clean(e.textContent)).filter(t => /(pay|\$|\u20ac|\u00a3)/i.test(t)).map(parseMoney).filter(n => n != null && n > 0);
+        return all.length ? Math.max(...all) : null;
+    };
 
     const clean = t => String(t ?? "").replace(/\s+/g, " ").trim();
     // The title is the page's own heading; the share tag is the fallback with the store's name stripped off the end.
@@ -69,7 +83,33 @@
         show(...kids);
     }
 
+    async function runBundle() {
+        let list = bundleTitles();
+        for (let n = 0; list.length < 2 && n < 10; n++) { await new Promise(r => setTimeout(r, 500)); list = bundleTitles(); }
+        if (list.length < 2) return;
+        const price = bundlePrice();
+        const r = await send({ type: "compare", titles: list });
+        if (!r || r.status === "network" || r.status === "error") return;
+        if (r.status === "no_code" || r.status === "bad_code") return show(el("h4", { textContent: "Bundle check" }), el("div", { className: "muted", textContent: "Add your Steam Value Checker link code to see what this bundle is really worth." }));
+        const found = r.items.filter(i => i.found && i.best), fresh = found.filter(i => !i.owned), have = found.filter(i => i.owned);
+        const cur = found[0]?.currency;
+        const retail = fresh.reduce((a, i) => a + i.best.price, 0), wishRetail = fresh.filter(i => i.wishlisted).reduce((a, i) => a + i.best.price, 0);
+        const kids = [el("h4", { textContent: "Bundle check" })];
+        if (!fresh.length) { kids.push(el("div", { className: "big warn", textContent: "You own everything here" })); return show(...kids); }
+        if (price) {
+            const ratio = price / retail;
+            kids.push(el("div", { className: "big " + (ratio < 0.7 ? "good" : ratio <= 1 ? "" : "warn"), textContent: ratio < 0.7 ? `Worth it: about ${Math.round((1 - ratio) * 100)}% under buying them separately` : ratio <= 1 ? "Fair: close to the separate prices" : "Skip it: cheaper to buy them one by one" }));
+        }
+        kids.push(el("div", { className: "shop" }, el("span", { textContent: `${fresh.length} game${fresh.length === 1 ? "" : "s"} you don't own, cheapest prices` }), el("b", { textContent: money(retail, cur) })));
+        if (price) kids.push(el("div", { className: "shop" }, el("span", { textContent: "Top tier price" }), el("b", { textContent: money(price, cur) })), el("div", { className: "shop" }, el("span", { textContent: "Per new game" }), el("b", { textContent: money(price / fresh.length, cur) })));
+        if (wishRetail) kids.push(el("div", { className: "muted", textContent: `${fresh.filter(i => i.wishlisted).length} on your wishlist, worth ${money(wishRetail, cur)}.` }));
+        if (have.length) kids.push(el("div", { className: "muted", textContent: `You already own ${have.length}: ${have.slice(0, 3).map(i => i.title).join(", ")}${have.length > 3 ? " and more" : ""}.` }));
+        if (found.length < list.length) kids.push(el("div", { className: "muted", textContent: `${found.length} of ${list.length} games matched.` }));
+        show(...kids);
+    }
+
     async function run() {
+        if (onBundlePage()) { const key = "b|" + location.pathname; if (key === lastKey) return; lastKey = key; return runBundle(); }
         if (!onGamePage()) { lastKey = ""; unmount(); return; }
         const title = readTitle(); if (!title) return;
         const key = location.pathname + "|" + title; if (key === lastKey) return; lastKey = key;

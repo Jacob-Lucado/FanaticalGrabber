@@ -303,7 +303,7 @@ async function refreshBadge() {
     if (!res.ok) return;
     const d = await res.json(), seen = badgeSeen || { free: [], playtests: [] };
     const newFree = d.free.filter(x => !seen.free.includes(x)).length, newTests = d.playtests.filter(x => !seen.playtests.includes(x)).length, unread = Number(d.unread) || 0;
-    await chrome.storage.local.set({ badgeNow: { state: "ok", free: d.free, playtests: d.playtests, newFree, newTests, unread, at: Date.now() } });
+    await chrome.storage.local.set({ badgeNow: { state: "ok", free: d.free, claimable: Array.isArray(d.claimable) ? d.claimable : [], hits: Array.isArray(d.hits) ? d.hits : [], playtests: d.playtests, newFree, newTests, unread, at: Date.now() } });
     const n = newFree + newTests + unread;
     await set(n ? String(Math.min(n, 99)) : "", "#4da3ff", n ? `Steam Value Checker: ${newFree} new free, ${newTests} new playtests, ${unread} unread alerts` : "FanaticalGrabber");
 }
@@ -324,4 +324,84 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return true;
     }
     if (msg?.type === "badge-refresh") { refreshBadge().then(() => sendResponse({ ok: true })); return true; }
+});
+
+
+// ---------- Popup actions: claim free Steam games, sync the library, spare keys and the gift board ----------
+// Everything here runs only when the member presses its button in the popup.
+
+/** Adds one free-to-keep Steam game to the account the member is signed in to. Steam's own "Add to Account" call, nothing else. */
+async function claimFree(appid) {
+    const sessionId = await getSessionId();
+    if (!sessionId) return { status: "not_logged_in" };
+    let subid = null;
+    try {
+        const r = await fetch(`${STEAM}/api/appdetails?appids=${appid}&filters=packages,price_overview`, { credentials: "omit" });
+        const d = (await r.json())?.[String(appid)]?.data;
+        subid = Array.isArray(d?.packages) ? d.packages[0] : null;
+    } catch { return { status: "error" }; }
+    if (!subid) return { status: "no_package" };
+    let res;
+    try { res = await fetch(`${STEAM}/freelicense/addfreelicense/${subid}`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ ajax: "true", sessionid: sessionId }) }); }
+    catch { return { status: "error" }; }
+    const text = await res.text();
+    if (/already (own|in)/i.test(text)) return { status: "owned" };
+    if (res.ok && /success|added/i.test(text)) return { status: "claimed" };
+    return { status: res.status === 401 || res.status === 403 ? "not_logged_in" : "error" };
+}
+
+/** Sends the app numbers of the games the member owns (read from the Steam page they are signed in to) so the bot's library matches. */
+async function syncLibrary() {
+    const { svcToken } = await chrome.storage.local.get("svcToken");
+    if (!svcToken) return { status: "no_code" };
+    let apps = [];
+    try { apps = (await (await fetch(`${STEAM}/dynamicstore/userdata/`, { credentials: "include" })).json()).rgOwnedApps || []; } catch { return { status: "steam_error" }; }
+    if (!apps.length) return { status: "not_logged_in" };
+    let added = 0, notFound = 0;
+    // 150 new games per round trip; each round only adds games the bot doesn't have yet, so repeating is safe.
+    for (let round = 0; round < 40; round++) {
+        let res;
+        try { res = await fetch(`${SVC}/api/grabber/sync`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${svcToken}` }, body: JSON.stringify({ appids: apps.slice(0, 5000) }) }); } catch { return { status: "network", added }; }
+        if (res.status === 401) return { status: "bad_code" };
+        if (res.status === 429) { await new Promise(r => setTimeout(r, 4500)); continue; }
+        if (!res.ok) return { status: "error", added };
+        const d = await res.json();
+        added += d.added || 0; notFound = d.notFound || 0;
+        if (!d.remaining || !d.added) return { status: "ok", added, total: apps.length, notFound, skippedForLimit: d.skippedForLimit || 0 };
+        await new Promise(r => setTimeout(r, 4200));
+    }
+    return { status: "ok", added, total: apps.length, notFound };
+}
+
+/** Vault keys whose game the account already owns. The keys themselves stay in the browser; only names are ever offered on the board. */
+async function spareKeys() {
+    const { vault = {}, redeemed = {} } = await chrome.storage.local.get(["vault", "redeemed"]);
+    const open = Object.entries(vault).filter(([k]) => !["redeemed", "owned", "used", "invalid"].includes(redeemed[k]?.status));
+    const titles = [...new Set(open.map(([, v]) => v.title).filter(Boolean))].slice(0, 40);
+    if (!titles.length) return { status: "ok", spares: [], checked: 0 };
+    const r = await checkOwned(titles);
+    if (r.error) return { status: "error", message: r.error };
+    return { status: "ok", checked: titles.length, spares: open.filter(([, v]) => r.owned[v.title] === true).map(([key, v]) => ({ key, title: v.title })) };
+}
+
+async function gifts(action, payload) {
+    const { svcToken } = await chrome.storage.local.get("svcToken");
+    if (!svcToken) return { status: "no_code" };
+    const init = action === "list" ? { headers: { Authorization: `Bearer ${svcToken}` } } : { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${svcToken}` }, body: JSON.stringify({ action, ...payload }) };
+    let res; try { res = await fetch(`${SVC}/api/grabber/gifts`, init); } catch { return { status: "network" }; }
+    if (res.status === 401) return { status: "bad_code" };
+    let d = {}; try { d = await res.json(); } catch { /* none */ }
+    return res.ok ? { status: "ok", ...d } : { status: "error", message: d.error || `HTTP ${res.status}` };
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (sender.id !== chrome.runtime.id) return;
+    const job = msg?.type === "claim-free" ? claimFree(Number(msg.appid))
+        : msg?.type === "sync-library" ? syncLibrary()
+        : msg?.type === "spare-keys" ? spareKeys()
+        : msg?.type === "gifts" ? gifts(["list", "offer", "claim", "withdraw"].includes(msg.action) ? msg.action : "list", { title: String(msg.title ?? "").slice(0, 100), id: String(msg.id ?? "").slice(0, 20) })
+        : null;
+    if (!job) return;
+    job.then(sendResponse).catch(err => sendResponse({ status: "error", message: err.message }));
+    return true;
 });

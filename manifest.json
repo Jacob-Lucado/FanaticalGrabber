@@ -67,6 +67,7 @@
     {
       "matches": [
         "https://www.humblebundle.com/store/*",
+        "https://www.humblebundle.com/games/*",
         "https://www.gog.com/*",
         "https://store.epicgames.com/*",
         "https://www.greenmangaming.com/*"
