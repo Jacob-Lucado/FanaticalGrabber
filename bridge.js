@@ -15,7 +15,7 @@
         if (e.source !== window || e.origin !== location.origin) return;
         const m = e.data;
         if (!m || m.svc !== "page") return;
-        if (m.type === "ping") return say({ type: "pong", version: VERSION });
+        if (m.type === "ping") { const { svcToken } = await chrome.storage.local.get("svcToken"); return say({ type: "pong", version: VERSION, linked: Boolean(svcToken) }); }
         if (m.type === "stop") return void stops.add(m.id);
         if (m.type === "connect") {
             // The dashboard hands over a fresh link code so nothing has to be copied and pasted.
