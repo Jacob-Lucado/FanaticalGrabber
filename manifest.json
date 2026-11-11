@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FanaticalGrabber",
-  "version": "2.10.0",
+  "version": "2.11.0",
   "description": "Reveal, export and batch-redeem your game keys, and check bundle and Steam prices with the free Steam Value Checker bot.",
   "permissions": [
     "clipboardWrite",
@@ -61,6 +61,18 @@
       ],
       "js": [
         "licenses.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.humblebundle.com/store/*",
+        "https://www.gog.com/*",
+        "https://store.epicgames.com/*",
+        "https://www.greenmangaming.com/*"
+      ],
+      "js": [
+        "stores.js"
       ],
       "run_at": "document_idle"
     },

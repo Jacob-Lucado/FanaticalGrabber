@@ -180,9 +180,17 @@ async function gameInfo(appid, cc, name) {
     return { status: "ok", ...(await res.json()) };
 }
 
+// Prices for a game found by title on another shop's page. Only the title and the member's link code are sent.
+async function compareTitles(titles, regions) {
+    const body = { titles: titles.map(t => String(t).slice(0, 120)).slice(0, 30) };
+    if (Array.isArray(regions)) body.regions = regions.map(String).slice(0, 4);
+    return svcPost("/api/grabber/compare", body);
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (sender.id !== chrome.runtime.id) return;
-    const job = msg?.type === "session-check" ? sessionCheck()
+    const job = msg?.type === "compare" ? compareTitles(Array.isArray(msg.titles) ? msg.titles : [], msg.regions)
+        : msg?.type === "session-check" ? sessionCheck()
         : msg?.type === "check-owned" ? checkOwned(Array.isArray(msg.titles) ? msg.titles.map(String) : [])
         : msg?.type === "game-info" ? gameInfo(Number(msg.appid), msg.cc, msg.name)
         : msg?.type === "wishlist-add" ? svcPost("/api/grabber/wishlist", { appid: Number(msg.appid), name: String(msg.name ?? "") })

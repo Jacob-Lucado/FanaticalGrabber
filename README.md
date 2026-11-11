@@ -4,7 +4,7 @@
 
 **Reveal, export and redeem your Fanatical keys without all the clicking.**
 
-![Version](https://img.shields.io/badge/version-2.10.0-ff9800)
+![Version](https://img.shields.io/badge/version-2.11.0-ff9800)
 ![Manifest](https://img.shields.io/badge/manifest-v3-107c41)
 ![Browsers](https://img.shields.io/badge/browsers-Chromium-66c0f4)
 ![Status](https://img.shields.io/badge/steam%20redeem-beta-orange)
@@ -73,6 +73,7 @@ When a newer version is out, the Fanatical and Steam panels show a small notice 
 ### New in 2.9: the Steam Value Checker bot, built into Steam
 **These features all need the extension to be linked with the Steam Value Checker Discord bot.** Without the link the extension only reveals and redeems keys. To link: sign in with Discord at [steamvaluechecker.com](https://steamvaluechecker.com/), have the bot in one of your servers, open **Library** and press **Connect the extension**. The extension tells you this itself: the toolbar icon shows a **!** until you link, and Steam store pages show a card with a **Link now** button.
 
+- **Price check on other stores:** on a Humble, GOG, Epic or Green Man Gaming game page, a card shows the cheapest price in every store we track, the all-time low, whether you own it, and (on request) the price in other regions for comparing. Only the game title and your link code are sent.
 - **Playtest and demo badge:** on a Steam game page a green badge links to a playtest, beta or demo that is open right now.
 - **Your server's games:** the card shows how many members of your server who share their library own the game, and how many are playing it right now. Only counts, only people who opted in with `/alerts share`.
 - **Add to wishlist:** one click from the store page. If you turned on your public wishlist page, it shows there too (and in your stream's gift-me card).
