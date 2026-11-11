@@ -391,7 +391,7 @@
 
     // ---------- price overlay on a store page ----------
     const appName = () => (document.getElementById("appHubAppName")?.textContent || document.querySelector('meta[property="og:title"]')?.content || document.title || "").replace(/^Save \d+% on /i, "").replace(/ on Steam$/i, "").trim().slice(0, 100);
-    const DASH = "https://steamvaluechecker.com";
+    const DASH = "https://steamvaluechecker.com/#/connect";
     const openDash = path => window.open(DASH + path, "_blank", "noopener,noreferrer");
 
     /** Shown instead of the price card when there is no (working) link code. Most features need the link, so say so plainly. */

@@ -51,7 +51,7 @@
     const money = (n, cur) => { try { return new Intl.NumberFormat(undefined, { style: "currency", currency: cur || "USD" }).format(n); } catch { return String(n); } };
 
     // Not linked with Steam Value Checker yet: say what linking adds, with a button that opens the dashboard. Hidden for a week once dismissed.
-    const DASH = "https://steamvaluechecker.com/#/library";
+    const DASH = "https://steamvaluechecker.com/#/connect";
     async function linkNote(bad) {
         try {
             const v = await chrome.storage.local.get(["svcToken", "linkHintHidden"]);

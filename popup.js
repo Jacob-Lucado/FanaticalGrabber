@@ -16,7 +16,22 @@
             el("div", { textContent: bad ? " Link again to switch these back on:" : " Most of this extension needs it. Without the link you only get key reveal and redeem. Linking switches on:" }),
             el("ul", {}, FEATURES.map(f => el("li", { textContent: f }))),
             el("div", { textContent: "You need to sign in with Discord on the dashboard first, with the bot in one of your servers. Only game names are sent, never keys." }),
-            el("button", { className: "btn", type: "button", textContent: "Link now", onclick: () => open(SVC + "/#/library") }));
+            el("button", { className: "btn", type: "button", textContent: "Link now", onclick: () => open(SVC + "/#/connect") }),
+            el("details", { className: "paste" }, el("summary", { textContent: "Have a code? Paste it" }),
+                (() => {
+                    const inp = el("input", { type: "text", placeholder: "svcg_…", spellcheck: false });
+                    inp.style.cssText = "width:100%;margin:6px 0;padding:6px;box-sizing:border-box";
+                    const msg = el("div", { className: "muted" });
+                    const save = el("button", { className: "btn", type: "button", textContent: "Save code", onclick: async () => {
+                        const v = inp.value.trim();
+                        if (!/^svcg_[A-Za-z0-9_-]{43}$/.test(v)) { msg.textContent = "That doesn't look like a link code."; return; }
+                        await chrome.storage.local.set({ svcToken: v });
+                        msg.textContent = "Saved. Checking it…";
+                        await ask({ type: "badge-refresh" });
+                        location.reload();
+                    } });
+                    return el("div", {}, inp, save, msg);
+                })()));
     }
     const row = (label, n, newN, path) => el("a", { className: "row", href: "#", onclick: e => { e.preventDefault(); open(SVC + path); } }, el("div", {}, label, el("br"), el("span", { textContent: newN ? `${newN} new` : "Nothing new" })), el("div", { className: "pill" + (n ? "" : " none"), textContent: String(n) }));
 
