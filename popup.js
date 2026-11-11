@@ -58,10 +58,11 @@
         // Free Steam games to keep: one press adds them to the signed-in account.
         if (b.claimable?.length) {
             const note = el("div", { className: "note" });
-            const btn = el("button", { className: "btn small", type: "button", textContent: `Add ${b.claimable.length} free game${b.claimable.length === 1 ? "" : "s"} to my Steam account`, onclick: async () => {
-                btn.disabled = true; let got = 0, had = 0, failed = 0;
-                for (const g of b.claimable) { say(note, `Adding ${g.title}\u2026`); const r = await ask({ type: "claim-free", appid: g.appid }); if (r?.status === "claimed") got++; else if (r?.status === "owned") had++; else if (r?.status === "not_logged_in") { say(note, "Sign in to Steam in this browser first.", true); btn.disabled = false; return; } else failed++; await new Promise(r => setTimeout(r, 1500)); }
-                say(note, `Added ${got}${had ? `, ${had} already yours` : ""}${failed ? `, ${failed} didn't work (open its Steam page to claim it)` : ""}.`, failed && !got);
+            const btn = el("button", { className: "btn small", type: "button", textContent: b.claimable.length === 1 ? "Add this free game to my Steam account" : `Add all ${b.claimable.length} current free games`, onclick: async () => {
+                btn.disabled = true; let got = 0, had = 0, failed = 0; const bad = [];
+                for (const g of b.claimable) { say(note, `Adding ${g.title}\u2026`); const r = await ask({ type: "claim-free", appid: g.appid }); if (r?.status === "claimed") got++; else if (r?.status === "owned") had++; else if (r?.status === "not_logged_in") { say(note, "Sign in to Steam in this browser first.", true); btn.disabled = false; return; } else { failed++; bad.push(g); } await new Promise(r => setTimeout(r, 1500)); }
+                say(note, `Added ${got}${had ? `, ${had} already yours` : ""}${failed ? `, ${failed} didn't work` : ""}.`, failed && !got);
+                for (const g of bad) note.append(el("div", {}, el("a", { href: "https://store.steampowered.com/app/" + g.appid, target: "_blank", rel: "noopener noreferrer", textContent: `Open ${g.title} on Steam`, onclick: e => { e.preventDefault(); open("https://store.steampowered.com/app/" + g.appid); } })));
             } });
             out.push(section("Free to keep on Steam", el("div", { className: "muted", textContent: b.claimable.map(g => g.title).join(", ") }), btn, note));
         }

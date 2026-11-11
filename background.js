@@ -293,6 +293,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // Every half hour: how many new free games, playtests and unread bot alerts there are since the member last opened the popup.
 // Without a link code the badge shows "!" so people know most features are switched off until they link with the bot.
 const BADGE_ALARM = "svc-badge";
+/** Drops demos, and DLC whose base game isn't on the Steam account that's signed in here (the server can only check the synced library). */
+async function eligible(list) {
+    const arr = (Array.isArray(list) ? list : []).filter(g => !/\bdemo\b/i.test(g.title || ""));
+    if (!arr.some(g => g.dlc)) return arr;
+    const o = await ownedAppIds();
+    return arr.filter(g => !g.dlc || (g.base && o.apps && o.apps.includes(Number(g.base.appid))));
+}
 async function refreshBadge() {
     const { svcToken, badgeSeen } = await chrome.storage.local.get(["svcToken", "badgeSeen"]);
     const set = async (text, color, title) => { try { await chrome.action.setBadgeText({ text }); await chrome.action.setBadgeBackgroundColor({ color }); await chrome.action.setTitle({ title }); } catch { /* no toolbar */ } };
@@ -302,6 +309,7 @@ async function refreshBadge() {
     if (res.status === 401) { await chrome.storage.local.set({ badgeNow: { state: "bad_code" } }); return set("!", "#ff6b6b", "FanaticalGrabber: your link code stopped working. Link again on the dashboard"); }
     if (!res.ok) return;
     const d = await res.json(), seen = badgeSeen || { free: [], playtests: [] };
+    d.claimable = await eligible(d.claimable);
     const newFree = d.free.filter(x => !seen.free.includes(x)).length, newTests = d.playtests.filter(x => !seen.playtests.includes(x)).length, unread = Number(d.unread) || 0;
     await chrome.storage.local.set({ badgeNow: { state: "ok", free: d.free, claimable: Array.isArray(d.claimable) ? d.claimable : [], hits: Array.isArray(d.hits) ? d.hits : [], playtests: d.playtests, newFree, newTests, unread, at: Date.now() } });
     autoClaim(Array.isArray(d.claimable) ? d.claimable : []).catch(() => {});

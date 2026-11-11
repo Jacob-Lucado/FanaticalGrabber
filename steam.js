@@ -296,13 +296,15 @@
         const list = Array.isArray(b.claimable) ? b.claimable : [];
         const note = el("div", { className: "line msg", hidden: true });
         const say = (t, ok) => { note.hidden = false; note.textContent = t; note.style.color = ok ? "var(--good)" : "var(--warn)"; };
+        const showBad = bad => badLinks(note, bad);
         const rows = [el("b", { textContent: "Free games and auto-claim" }), el("div", { textContent: list.length ? "Free to keep right now: " + list.map(g => g.title).join(", ") : "No new free games to add right now." })];
         if (list.length) {
-            const btn = el("button", { className: "b go", type: "button", textContent: `Add ${list.length} free game${list.length === 1 ? "" : "s"} to my account` });
+            const btn = el("button", { className: "b go", type: "button", textContent: list.length === 1 ? "Add this free game to my account" : `Add all ${list.length} current free games` });
             btn.addEventListener("click", async () => {
-                btn.disabled = true; let got = 0, had = 0, failed = 0, out = false;
-                for (const g of list) { say(`Adding ${g.title}\u2026`, true); const r = await send({ type: "claim-free", appid: g.appid }); if (r?.status === "claimed") got++; else if (r?.status === "owned") had++; else if (r?.status === "not_logged_in") { out = true; break; } else failed++; }
-                say(out ? "Sign in to Steam in this browser first." : `Added ${got}${had ? `, ${had} already yours` : ""}${failed ? `, ${failed} didn't work (open its Steam page to claim it)` : ""}.`, !out && (!failed || got > 0));
+                btn.disabled = true; let got = 0, had = 0, failed = 0, out = false; const bad = [];
+                for (const g of list) { say(`Adding ${g.title}\u2026`, true); const r = await send({ type: "claim-free", appid: g.appid }); if (r?.status === "claimed") got++; else if (r?.status === "owned") had++; else if (r?.status === "not_logged_in") { out = true; break; } else { failed++; bad.push(g); } }
+                say(out ? "Sign in to Steam in this browser first." : `Added ${got}${had ? `, ${had} already yours` : ""}${failed ? `, ${failed} didn't work` : ""}.`, !out && (!failed || got > 0));
+                showBad(bad);
                 btn.disabled = false;
             });
             rows.push(el("div", { className: "row" }, btn));
@@ -448,6 +450,7 @@
         root.append(card);
     }
 
+    const badLinks = (note, bad) => { for (const g of bad) note.append(el("div", {}, el("a", { href: "https://store.steampowered.com/app/" + g.appid, target: "_blank", rel: "noopener noreferrer", textContent: `Open ${g.title} on Steam`, style: "color:var(--accent)" }))); };
     /** Free-to-keep games and the auto-claim switch, right on the Steam store so you don't have to open the popup. */
     async function freeCard() {
         const b = await send({ type: "badge-status" });
@@ -458,16 +461,18 @@
         const close = el("button", { className: "x", textContent: "\u00d7", "aria-label": "Close" });
         const note = el("div", { className: "line msg", hidden: true });
         const say = (t, ok) => { note.hidden = false; note.textContent = t; note.style.color = ok ? "var(--good)" : "var(--warn)"; };
-        const btn = el("button", { className: "b go", type: "button", textContent: `Add ${list.length} free game${list.length === 1 ? "" : "s"} to my account` });
+        const showBad = bad => badLinks(note, bad);
+        const btn = el("button", { className: "b go", type: "button", textContent: list.length === 1 ? "Add this free game to my account" : `Add all ${list.length} current free games` });
         btn.addEventListener("click", async () => {
-            btn.disabled = true; let got = 0, had = 0, failed = 0, out = false;
+            btn.disabled = true; let got = 0, had = 0, failed = 0, out = false; const bad = [];
             for (const g of list) {
                 say(`Adding ${g.title}\u2026`, true);
                 const r = await send({ type: "claim-free", appid: g.appid });
-                if (r?.status === "claimed") got++; else if (r?.status === "owned") had++; else if (r?.status === "not_logged_in") { out = true; break; } else failed++;
+                if (r?.status === "claimed") got++; else if (r?.status === "owned") had++; else if (r?.status === "not_logged_in") { out = true; break; } else { failed++; bad.push(g); }
             }
             if (out) say("Sign in to Steam in this browser first.", false);
-            else say(`Added ${got}${had ? `, ${had} already yours` : ""}${failed ? `, ${failed} didn't work (open its Steam page to claim it)` : ""}.`, !failed || got > 0);
+            else say(`Added ${got}${had ? `, ${had} already yours` : ""}${failed ? `, ${failed} didn't work` : ""}.`, !failed || got > 0);
+            showBad(bad);
             btn.disabled = false;
         });
         const auto = el("input", { type: "checkbox" }); auto.checked = Boolean(autoClaim);
