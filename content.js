@@ -463,14 +463,14 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
 
     // ---------- UI ----------
     const CSS = `
-        #fg-panel { position: fixed; bottom: 20px; right: 20px; width: 260px; background: #1e1e1e; color: #fff;
+        #fg-panel { position: fixed; bottom: 20px; right: 20px; width: 260px; max-width: calc(100vw - 40px); box-sizing: border-box; background: #1e1e1e; color: #fff;
             border-radius: 12px; overflow: hidden; z-index: 2147483647; font-family: "Segoe UI", sans-serif;
             box-shadow: 0 5px 20px rgba(0,0,0,.4); }
         #fg-header { background: #ff9800; color: #000; padding: 12px; font-size: 16px; font-weight: bold;
             cursor: pointer; user-select: none; text-align: center; }
         #fg-header.collapsed span { animation: fg-fade 2.8s ease-in-out infinite; }
         @keyframes fg-fade { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
-        #fg-body { padding: 10px; display: none; }
+        #fg-body { padding: 10px; display: none; max-height: calc(100vh - 110px); overflow-y: auto; }
         #fg-status { display: none; margin-bottom: 12px; font-size: 13px; }
         #fg-status-text, #fg-keys-count { background: #2a2a2a; padding: 8px 12px; border-radius: 8px;
             margin-bottom: 6px; text-align: center; color: #ddd; }

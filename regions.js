@@ -37,7 +37,7 @@
 
     const css = `
       :host { all: initial; }
-      .card { position: fixed; left: 18px; bottom: 18px; z-index: 2147483646; width: 320px; max-height: 70vh; overflow: auto; padding: 14px 16px; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #e8eefc; background: #0f1623; border: 1px solid #25324a; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+      .card { position: relative; width: 100%; max-height: 60vh; overflow: auto; padding: 14px 16px; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #e8eefc; background: #0f1623; border: 1px solid #25324a; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
       h4 { margin: 0 0 8px; color: #8da2c8; font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .09em; }
       .x { float: right; background: none; border: 0; color: #8da2c8; cursor: pointer; font-size: 16px; line-height: 1; }
       .big { font-size: 16px; font-weight: 700; margin: 2px 0 6px; } .good { color: #3ddc97; } .warn { color: #ffb84d; } .bad { color: #ff6b6b; }
@@ -52,9 +52,9 @@
     let host = null, root = null, lastSlug = "", busy = false;
     function mount() {
         if (host?.isConnected) return;
-        host = el("div"); host.id = "fg-regions-card";
+        host = el("div", { style: "pointer-events:auto;width:100%" }); host.id = "fg-regions-card";
         const shadow = host.attachShadow({ mode: "open" }); shadow.append(el("style", { textContent: css })); root = el("div"); shadow.append(root);
-        document.documentElement.append(host);
+        (window.__fgStack ? window.__fgStack() : document.documentElement).append(host);
     }
     const unmount = () => { host?.remove(); host = null; root = null; };
     const show = (...kids) => { mount(); const x = el("button", { className: "x", textContent: "×", title: "Close" }); x.addEventListener("click", () => { unmount(); lastSlug = "closed:" + location.pathname; }); root.replaceChildren(el("div", { className: "card" }, x, ...kids)); };

@@ -31,6 +31,7 @@
       "js": [
         "xlsx.full.min.js",
         "update.js",
+        "stack.js",
         "content.js",
         "deals.js",
         "regions.js"

@@ -64,11 +64,12 @@
         card = document.createElement("div");
         const sh = card.attachShadow({ mode: "open" });
         const color = tone === "ok" ? "#2e8b57" : tone === "bad" ? "#c0392b" : "#555";
-        sh.innerHTML = `<style>.c{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:300px;font:13px/1.45 system-ui,sans-serif;background:#16181d;color:#e8e8ea;border:1px solid #333;border-left:4px solid ${color};border-radius:10px;padding:12px 14px;box-shadow:0 6px 24px #0008}h4{margin:0 0 6px;font-size:14px}.l{margin:3px 0}.x{position:absolute;top:4px;right:8px;background:none;border:0;color:#aaa;font-size:18px;cursor:pointer}</style><div class="c"><button class="x" aria-label="Close">×</button><h4></h4></div>`;
+        sh.innerHTML = `<style>.c{position:relative;box-sizing:border-box;width:100%;max-height:60vh;overflow:auto;font:13px/1.45 system-ui,sans-serif;background:#16181d;color:#e8e8ea;border:1px solid #333;border-left:4px solid ${color};border-radius:10px;padding:12px 26px 12px 14px;box-shadow:0 6px 24px #0008}h4{margin:0 0 6px;font-size:14px}.l{margin:3px 0}.x{position:absolute;top:4px;right:8px;background:none;border:0;color:#aaa;font-size:18px;cursor:pointer}</style><div class="c"><button class="x" aria-label="Close">×</button><h4></h4></div>`;
         sh.querySelector("h4").textContent = title;
         for (const l of lines) { const d = document.createElement("div"); d.className = "l"; d.textContent = l; sh.querySelector(".c").append(d); }
         sh.querySelector(".x").addEventListener("click", () => card.remove());
-        document.documentElement.append(card);
+        card.style.cssText = "pointer-events:auto;width:100%";
+        (window.__fgStack ? window.__fgStack() : document.documentElement).append(card);
     };
 
     async function run() {

@@ -36,7 +36,7 @@
     let host = null, root = null, lastKey = "";
     const css = `
       :host { all: initial; }
-      .card { position: fixed; right: 18px; bottom: 18px; z-index: 2147483646; width: 290px; padding: 14px 16px; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #e8eefc; background: #0f1623; border: 1px solid #25324a; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+      .card { position: fixed; right: 18px; bottom: 18px; z-index: 2147483646; width: 290px; max-width: calc(100vw - 36px); max-height: calc(100vh - 36px); overflow: auto; padding: 14px 16px; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #e8eefc; background: #0f1623; border: 1px solid #25324a; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
       h4 { margin: 0 0 8px; color: #8da2c8; font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .09em; }
       .x { float: right; background: none; border: 0; color: #8da2c8; cursor: pointer; font-size: 16px; line-height: 1; }
       .big { font-size: 15px; font-weight: 700; margin: 2px 0 6px; }
