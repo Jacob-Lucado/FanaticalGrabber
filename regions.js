@@ -3,6 +3,7 @@
 // Nothing is sent anywhere else.
 (() => {
     if (window.__fgRegions) return; window.__fgRegions = true;
+    if (!/(^|\.)(fanatical|greenmangaming)\.com$/.test(location.hostname)) return; // the same script file ships with the other stores, which have no region check
     const PAGE = /^\/([a-z]{2}(?:-[A-Za-z]{2})?)\/(game|bundle|pick-and-mix)\/([^/?#]+)/;
 
     /** The countries Fanatical's own "Check Regions" box lists (239), with plain English names. Anything a game lists beyond these is added. */

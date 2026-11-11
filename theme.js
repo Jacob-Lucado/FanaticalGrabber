@@ -1,6 +1,11 @@
 // Lets the extension's pop-ups wear the colors of the store they're on. Fanatical gets black and orange, Green Man Gaming gets its
-// charcoal and green. Other stores keep the default navy. `from` says which palette the string was written in.
+// charcoal and green, Humble gets its purple. Other stores keep the default navy. `from` says which palette the string was written in.
 window.__fgSkin = (str, from) => {
+    if (/(^|\.)humblebundle\.com$/.test(location.hostname) && from === "navy") {
+        let out = String(str);
+        for (const [a, b] of [["color:#fff;text-decoration:none;background:linear-gradient(90deg,#4da3ff,#7c6cff)", "color:#fff;text-decoration:none;background:linear-gradient(90deg,#7c3bed,#9b6bf5)"], ["#0f1623", "#0f1729"], ["rgba(77,163,255,", "rgba(167,139,250,"], ["#4da3ff", "#a78bfa"]]) out = out.split(a).join(b);
+        return out;
+    }
     if (!/(^|\.)greenmangaming\.com$/.test(location.hostname)) return str;
     const maps = {
         orange: [["#ffa726", "#00e205"], ["#f57c00", "#00b804"], ["#ff9800", "#00e205"], ["rgba(255,152,0,", "rgba(0,226,5,"], ["rgba(26,26,26,.86)", "rgba(39,40,46,.88)"], ["#1a1a1a", "#27282e"], ["#262626", "#32333a"], ["#3a3a3a", "#45464e"], ["#333", "#3d3e46"]],

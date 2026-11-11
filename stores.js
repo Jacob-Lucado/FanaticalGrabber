@@ -12,12 +12,22 @@
     // The games in a bundle: the item names in its tiers. Priced from the tier headings; the top tier is the whole bundle.
     const bundleTitles = () => {
         const seen = new Set();
+        // Humble's current bundle pages: each game is a button showing its name and "MSRP $x".
+        for (const b of document.querySelectorAll("button")) {
+            if (!/MSRP/.test(b.textContent)) continue;
+            const t = clean(b.querySelector(".line-clamp-2, .line-clamp-1")?.textContent || b.querySelector("img")?.alt);
+            if (t && t.length < 90 && !parseMoney(t)) seen.add(t);
+        }
         for (const e of document.querySelectorAll('[class*="item-title"],[class*="tier-item"] h2,[class*="tier-item"] h3,[class*="tier-item-title"],[class*="game-box"] [class*="title"]')) {
             const t = clean(e.textContent); if (t && t.length < 90 && !parseMoney(t)) seen.add(t);
         }
         return [...seen].slice(0, 30);
     };
     const bundlePrice = () => {
+        // Humble's current tier buttons read like "9 Items $289.90 $40.00": the last amount is what you pay.
+        const tiers = [...document.querySelectorAll("button")].map(b => [...b.querySelectorAll("span")].filter(e => e.children.length === 0).map(e => clean(e.textContent))).filter(sp => sp.some(t => /^\d+ Items?$/i.test(t)));
+        const paid = tiers.map(sp => parseMoney(sp.filter(t => parseMoney(t) != null).slice(-1)[0])).filter(n => n != null && n > 0);
+        if (paid.length) return Math.max(...paid);
         const all = [...document.querySelectorAll('[class*="tier"] [class*="price"],[class*="tier-price"],[class*="price-button"],[class*="add-to-cart"],button')].map(e => clean(e.textContent)).filter(t => /(pay|\$|\u20ac|\u00a3)/i.test(t)).map(parseMoney).filter(n => n != null && n > 0);
         return all.length ? Math.max(...all) : null;
     };
@@ -26,10 +36,13 @@
     // The title is the page's own heading; the share tag is the fallback with the store's name stripped off the end.
     const readTitle = () => {
         const og = clean(document.querySelector('meta[property="og:title"]')?.content)
-            .replace(/\s*[|–—-]\s*(download|buy|get|play|epic games|gog|humble|green man|pc|steam).*$/i, "")
-            .replace(/\s+(on|for)\s+(gog\.com|humble store|epic games store|green man gaming|pc).*$/i, "");
+            .replace(/\s*[|\u2013\u2014-]\s*(download|buy|get|play|epic games|gog|humble|green man|pc|steam).*$/i, "")
+            .replace(/\s+(on|for)\s+(gog\.com|humble store|epic games store|green man gaming|pc).*$/i, "")
+            .replace(/^buy\s+/i, "").replace(/\s+from\s+the\s+humble\s+store.*$/i, "");
         const h1 = clean(document.querySelector("h1")?.textContent);
-        const t = h1 && h1.length < 100 ? h1 : og;
+        // Humble's newer pages have no h1: the game's name is the first heading that isn't a "Read more" or section label.
+        const h2 = THIS_SHOP === "humble" ? [...document.querySelectorAll("h2")].map(h => clean(h.textContent)).find(t => t && !/^(read more|system requirements|about|reviews|more like)/i.test(t)) : "";
+        const t = h1 && h1.length < 100 ? h1 : h2 && h2.length < 100 ? h2 : og;
         return t && t.length >= 2 && t.length < 100 ? t : "";
     };
 
