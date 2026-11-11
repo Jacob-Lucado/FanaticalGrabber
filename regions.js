@@ -37,16 +37,16 @@
 
     const css = `
       :host { all: initial; }
-      .card { position: relative; width: 100%; max-height: 60vh; overflow: auto; padding: 14px 16px; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #e8eefc; background: #0f1623; border: 1px solid #25324a; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
-      h4 { margin: 0 0 8px; color: #8da2c8; font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .09em; }
-      .x { float: right; background: none; border: 0; color: #8da2c8; cursor: pointer; font-size: 16px; line-height: 1; }
+      .card { position: relative; width: 100%; max-height: 60vh; overflow: auto; padding: 14px 16px; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #f2f2f2; background: #1a1a1a; border: 1px solid #333; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+      h4 { margin: 0 0 8px; color: #a8a8a8; font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .09em; }
+      .x { float: right; background: none; border: 0; color: #a8a8a8; cursor: pointer; font-size: 16px; line-height: 1; }
       .big { font-size: 16px; font-weight: 700; margin: 2px 0 6px; } .good { color: #3ddc97; } .warn { color: #ffb84d; } .bad { color: #ff6b6b; }
-      .muted { color: #8da2c8; font-size: 12px; margin-top: 6px; }
-      .go { padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 650; color: #fff; background: linear-gradient(90deg, #4da3ff, #7c6cff); border: 0; border-radius: 999px; cursor: pointer; }
+      .muted { color: #a8a8a8; font-size: 12px; margin-top: 6px; }
+      .go { padding: 7px 12px; font: inherit; font-size: 13px; font-weight: 650; color: #111; background: linear-gradient(90deg, #ffa726, #f57c00); border: 0; border-radius: 999px; cursor: pointer; }
       .go:disabled { opacity: .6; cursor: default; }
       details { margin-top: 8px; } summary { cursor: pointer; font-weight: 650; }
-      .list { margin-top: 6px; font-size: 12px; color: #c4d0e6; line-height: 1.55; }
-      input { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 6px 9px; font: inherit; font-size: 13px; color: #e8eefc; background: #162134; border: 1px solid #2d3f61; border-radius: 8px; }
+      .list { margin-top: 6px; font-size: 12px; color: #d6d6d6; line-height: 1.55; }
+      input { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 6px 9px; font: inherit; font-size: 13px; color: #f2f2f2; background: #262626; border: 1px solid #3a3a3a; border-radius: 8px; }
     `;
     const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids.filter(k => k != null)); return n; };
     // Not linked with Steam Value Checker yet: say what linking adds, with a button that opens the dashboard. Hidden for a week once dismissed.
@@ -58,11 +58,11 @@
             if (Date.now() - (v.linkHintHidden || 0) < 7 * 86400_000) return null;
         } catch { return null; }
         const a = el("a", { href: DASH, target: "_blank", rel: "noopener noreferrer", textContent: "Link now" });
-        a.style.cssText = "display:inline-block;margin-top:6px;padding:5px 12px;border-radius:999px;font-weight:650;font-size:12px;color:#fff;text-decoration:none;background:linear-gradient(90deg,#4da3ff,#7c6cff)";
+        a.style.cssText = "display:inline-block;margin-top:6px;padding:5px 12px;border-radius:999px;font-weight:650;font-size:12px;color:#111;text-decoration:none;background:linear-gradient(90deg,#ffa726,#f57c00)";
         const hide = el("button", { textContent: "Not now" });
-        hide.style.cssText = "margin-left:8px;background:none;border:0;color:#8da2c8;font:inherit;font-size:12px;cursor:pointer";
+        hide.style.cssText = "margin-left:8px;background:none;border:0;color:#a8a8a8;font:inherit;font-size:12px;cursor:pointer";
         const box = el("div", { className: "muted linknote" }, el("b", { textContent: bad ? "Your link stopped working. " : "Get more out of this. " }), bad ? "Link again to switch your prices, bundle checks and wishlist back on." : "Link with Steam Value Checker (free) to see prices from every store, whether you own a game, wishlist sales and more.", el("br"), a, hide);
-        box.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid #25324a";
+        box.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid #333";
         hide.addEventListener("click", async () => { try { await chrome.storage.local.set({ linkHintHidden: Date.now() }); } catch { /* ignore */ } box.remove(); });
         return box;
     }
@@ -79,42 +79,42 @@
     // ---------- the results window: a centered, see-through panel over the page ----------
     const MCSS = `
       :host { all: initial; }
-      .back { position: fixed; inset: 0; z-index: 2147483647; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; background: rgba(6,10,18,.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #e8eefc; animation: fgin .18s ease-out; }
+      .back { position: fixed; inset: 0; z-index: 2147483647; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; background: rgba(6,10,18,.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #f2f2f2; animation: fgin .18s ease-out; }
       @keyframes fgin { from { opacity: 0; } to { opacity: 1; } } @keyframes fgup { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
-      .win { width: min(900px, 100%); max-height: min(86vh, 860px); display: flex; flex-direction: column; background: rgba(15,22,35,.84); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2); border: 1px solid rgba(141,162,200,.28); border-radius: 22px; box-shadow: 0 30px 90px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06); overflow: hidden; animation: fgup .22s ease-out; }
-      .head { display: flex; align-items: flex-start; gap: 14px; padding: 22px 26px 16px; border-bottom: 1px solid rgba(141,162,200,.16); background: linear-gradient(180deg, rgba(77,163,255,.10), transparent); }
-      .head .ttl { flex: 1; min-width: 0; } .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #7fb4ff; }
+      .win { width: min(900px, 100%); max-height: min(86vh, 860px); display: flex; flex-direction: column; background: rgba(26,26,26,.86); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2); border: 1px solid rgba(255,255,255,.28); border-radius: 22px; box-shadow: 0 30px 90px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06); overflow: hidden; animation: fgup .22s ease-out; }
+      .head { display: flex; align-items: flex-start; gap: 14px; padding: 22px 26px 16px; border-bottom: 1px solid rgba(255,255,255,.16); background: linear-gradient(180deg, rgba(255,152,0,.10), transparent); }
+      .head .ttl { flex: 1; min-width: 0; } .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #ff9800; }
       .head h2 { margin: 4px 0 0; font-size: 24px; line-height: 1.2; font-weight: 800; color: #fff; overflow-wrap: anywhere; }
-      .xbtn, .bk { flex: none; border: 1px solid rgba(141,162,200,.25); background: rgba(255,255,255,.06); color: #c4d0e6; border-radius: 999px; cursor: pointer; font: inherit; }
+      .xbtn, .bk { flex: none; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); color: #d6d6d6; border-radius: 999px; cursor: pointer; font: inherit; }
       .xbtn { width: 36px; height: 36px; font-size: 20px; line-height: 1; } .bk { padding: 7px 14px; font-size: 13px; font-weight: 650; margin-bottom: 8px; }
       .xbtn:hover, .bk:hover { background: rgba(255,255,255,.14); color: #fff; }
       .scroll { overflow: auto; padding: 20px 26px 24px; }
       .verdict { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 16px; border: 1px solid; margin-bottom: 16px; }
       .verdict .ic { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; font-weight: 800; }
-      .verdict b { display: block; font-size: 19px; } .verdict span { font-size: 13px; color: #c4d0e6; }
+      .verdict b { display: block; font-size: 19px; } .verdict span { font-size: 13px; color: #d6d6d6; }
       .v-good { background: rgba(61,220,151,.10); border-color: rgba(61,220,151,.4); } .v-good .ic { background: rgba(61,220,151,.2); color: #3ddc97; } .v-good b { color: #3ddc97; }
       .v-warn { background: rgba(255,184,77,.10); border-color: rgba(255,184,77,.4); } .v-warn .ic { background: rgba(255,184,77,.2); color: #ffb84d; } .v-warn b { color: #ffb84d; }
       .v-bad { background: rgba(255,107,107,.10); border-color: rgba(255,107,107,.4); } .v-bad .ic { background: rgba(255,107,107,.2); color: #ff6b6b; } .v-bad b { color: #ff6b6b; }
       .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
-      .tile { padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(141,162,200,.18); }
-      .tile i { display: block; font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8da2c8; } .tile strong { display: block; margin-top: 4px; font-size: 28px; line-height: 1.1; font-weight: 800; }
+      .tile { padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.18); }
+      .tile i { display: block; font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #a8a8a8; } .tile strong { display: block; margin-top: 4px; font-size: 28px; line-height: 1.1; font-weight: 800; }
       .good { color: #3ddc97; } .warn { color: #ffb84d; } .bad { color: #ff6b6b; }
       .meter { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: rgba(255,107,107,.55); margin-bottom: 20px; } .meter span { background: linear-gradient(90deg, #2bc489, #3ddc97); }
       .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } .cols.one { grid-template-columns: 1fr; }
-      .pane { border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(141,162,200,.16); padding: 14px 16px; min-width: 0; }
-      .pane h3 { margin: 0 0 10px; font-size: 14px; font-weight: 750; display: flex; align-items: center; gap: 8px; } .pane h3 em { font-style: normal; font-size: 12px; padding: 2px 9px; border-radius: 99px; background: rgba(255,255,255,.1); color: #e8eefc; }
-      .chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 260px; overflow: auto; padding-right: 4px; } .chip { padding: 4px 10px; border-radius: 99px; font-size: 12px; background: rgba(255,255,255,.07); border: 1px solid rgba(141,162,200,.16); color: #dbe5f7; }
-      .p-good .chip { border-color: rgba(61,220,151,.28); } .p-bad .chip { border-color: rgba(255,107,107,.28); } .none { color: #8da2c8; font-size: 13px; }
+      .pane { border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.16); padding: 14px 16px; min-width: 0; }
+      .pane h3 { margin: 0 0 10px; font-size: 14px; font-weight: 750; display: flex; align-items: center; gap: 8px; } .pane h3 em { font-style: normal; font-size: 12px; padding: 2px 9px; border-radius: 99px; background: rgba(255,255,255,.1); color: #f2f2f2; }
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 260px; overflow: auto; padding-right: 4px; } .chip { padding: 4px 10px; border-radius: 99px; font-size: 12px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.16); color: #ececec; }
+      .p-good .chip { border-color: rgba(61,220,151,.28); } .p-bad .chip { border-color: rgba(255,107,107,.28); } .none { color: #a8a8a8; font-size: 13px; }
       .find { display: flex; gap: 10px; align-items: center; margin: 16px 0 0; flex-wrap: wrap; }
-      .find input { flex: 1; min-width: 180px; padding: 10px 14px; font: inherit; color: #fff; background: rgba(255,255,255,.07); border: 1px solid rgba(141,162,200,.3); border-radius: 12px; outline: none; } .find input:focus { border-color: #4da3ff; }
-      .answer { font-weight: 700; font-size: 13px; padding: 6px 12px; border-radius: 99px; } .answer.y { background: rgba(61,220,151,.16); color: #3ddc97; } .answer.n { background: rgba(255,107,107,.16); color: #ff6b6b; } .answer.q { color: #8da2c8; font-weight: 500; }
-      .filters { display: flex; gap: 8px; margin: 0 0 14px; flex-wrap: wrap; } .fl { padding: 7px 14px; border-radius: 99px; border: 1px solid rgba(141,162,200,.25); background: rgba(255,255,255,.05); color: #c4d0e6; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; } .fl.on { background: linear-gradient(90deg, #4da3ff, #7c6cff); color: #fff; border-color: transparent; }
+      .find input { flex: 1; min-width: 180px; padding: 10px 14px; font: inherit; color: #fff; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.3); border-radius: 12px; outline: none; } .find input:focus { border-color: #ff9800; }
+      .answer { font-weight: 700; font-size: 13px; padding: 6px 12px; border-radius: 99px; } .answer.y { background: rgba(61,220,151,.16); color: #3ddc97; } .answer.n { background: rgba(255,107,107,.16); color: #ff6b6b; } .answer.q { color: #a8a8a8; font-weight: 500; }
+      .filters { display: flex; gap: 8px; margin: 0 0 14px; flex-wrap: wrap; } .fl { padding: 7px 14px; border-radius: 99px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.05); color: #d6d6d6; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; } .fl.on { background: linear-gradient(90deg, #ffa726, #f57c00); color: #111; border-color: transparent; }
       .games { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
-      .game { text-align: left; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(141,162,200,.2); background: rgba(255,255,255,.05); color: inherit; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
-      .game:hover { background: rgba(255,255,255,.11); border-color: rgba(141,162,200,.45); } .game b { font-size: 14px; line-height: 1.3; } .game small { color: #8da2c8; font-size: 12px; }
+      .game { text-align: left; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.05); color: inherit; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
+      .game:hover { background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.45); } .game b { font-size: 14px; line-height: 1.3; } .game small { color: #a8a8a8; font-size: 12px; }
       .badge { align-self: flex-start; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 3px 10px; border-radius: 99px; }
       .b-good { background: rgba(61,220,151,.18); color: #3ddc97; } .b-warn { background: rgba(255,184,77,.18); color: #ffb84d; } .b-bad { background: rgba(255,107,107,.18); color: #ff6b6b; }
-      .foot { padding: 12px 26px; border-top: 1px solid rgba(141,162,200,.14); font-size: 12px; color: #8da2c8; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+      .foot { padding: 12px 26px; border-top: 1px solid rgba(255,255,255,.14); font-size: 12px; color: #a8a8a8; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
       @media (max-width: 640px) { .tiles { grid-template-columns: 1fr 1fr 1fr; } .cols { grid-template-columns: 1fr; } .head h2 { font-size: 19px; } .tile strong { font-size: 22px; } }
     `;
     let mHost = null, mRoot = null;
