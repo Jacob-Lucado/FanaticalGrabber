@@ -3,7 +3,7 @@
 // Nothing is sent anywhere else.
 (() => {
     if (window.__fgRegions) return; window.__fgRegions = true;
-    const PAGE = /^\/([a-z]{2}(?:-[A-Za-z]{2})?)\/(?:game|bundle)\/([^/?#]+)/;
+    const PAGE = /^\/([a-z]{2}(?:-[A-Za-z]{2})?)\/(game|bundle|pick-and-mix)\/([^/?#]+)/;
 
     /** The countries Fanatical's own "Check Regions" box lists (239), with plain English names. Anything a game lists beyond these is added. */
     const CODES = "AF,AX,DZ,AS,AD,AO,AI,AQ,AG,AR,AM,AW,AU,AT,AZ,BS,BD,BB,BE,BZ,BJ,BM,BT,BO,BQ,BA,BW,BV,BR,IO,BN,BG,BF,BI,KH,CM,CA,CV,KY,CF,TD,CL,CN,CX,CC,CO,KM,CG,CD,CK,CR,CI,HR,CW,CY,CZ,DK,DJ,DM,DO,EC,EG,SV,GQ,ER,EE,ET,FK,FO,FJ,FI,FR,GF,PF,TF,GA,GM,GE,DE,GH,GI,GR,GL,GD,GP,GU,GT,GG,GN,GW,GY,HT,HM,VA,HN,HK,HU,IS,IN,ID,IR,IQ,IE,IL,IT,JM,JP,JE,JO,KZ,KI,KR,KW,KG,LA,LV,LB,LS,LR,LY,LI,LT,LU,MO,MG,MW,MY,MV,ML,MT,MH,MQ,MR,MU,YT,MX,FM,MN,ME,MS,MA,MZ,MM,NA,NR,NP,NL,AN,NC,NZ,NI,NE,NG,NU,NF,MK,MP,NO,OM,PK,PW,PS,PA,PG,PE,PH,PN,PL,PT,PR,QA,XK,RE,RO,RW,BL,SH,KN,LC,MF,PM,VC,WS,SM,ST,SA,SN,RS,SC,SL,SG,SX,SK,SI,SB,SO,ZA,GS,SS,ES,LK,SD,SR,SJ,SZ,SE,CH,TW,TJ,TZ,TH,TL,TG,TK,TO,TT,TN,TR,TM,TC,TV,UG,UA,AE,GB,US,UM,UY,UZ,VU,VE,VN,VG,VI,WF,EH,YE,ZM,ZW".split(",");
@@ -107,15 +107,42 @@
         finally { busy = false; }
     }
 
+    /** Build-your-own bundles: every game in the pool has its own region list, so each one gets its own verdict. */
+    async function checkPick(lang, slug) {
+        busy = true;
+        try {
+            const r = await fetch(`/api/pick-and-mix/${encodeURIComponent(slug)}/${encodeURIComponent(lang)}`, { credentials: "omit" });
+            if (!r.ok) return show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: "Couldn't read this bundle's games. Try again in a moment." }));
+            const bundle = await r.json(), games = (Array.isArray(bundle.products) ? bundle.products : []).filter(p => p && p.name);
+            if (!games.length) return show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: "No games found in this bundle." }));
+            const extra = games.flatMap(p => [...(p.regions_included || []), ...(p.regions_excluded || [])]);
+            const uni = allCountries(extra);
+            const rows = games.map(p => ({ name: p.name, res: analyze(p, uni) })).sort((a, b) => (a.res.global === b.res.global ? a.name.localeCompare(b.name) : a.res.global ? -1 : 1));
+            const globals = rows.filter(x => x.res.global).length;
+            const kids = [el("h4", { textContent: "Region check" }),
+                el("div", { className: "big " + (globals === rows.length ? "good" : globals ? "warn" : "bad"), textContent: globals === rows.length ? "Every game is global" : `${globals} of ${rows.length} games are global` }),
+                el("div", { className: "muted", textContent: `Checked ${uni.size} countries for each game. Each game is checked on its own. Open a locked one to see where it works.` })];
+            for (const { name, res } of rows) {
+                if (res.global) { kids.push(el("div", { className: "muted" }, el("span", { className: "good", textContent: "\u2713 " }), name)); continue; }
+                kids.push(el("details", {}, el("summary", { className: res.works.length > res.blocked.length ? "warn" : "bad", textContent: `${name}: works in ${res.works.length} of ${res.works.length + res.blocked.length}` }),
+                    el("div", { className: "list" }, el("b", { className: "good", textContent: `Works in (${res.works.length}): ` }), res.works.map(c => c.name).join(", ") || "None"),
+                    el("div", { className: "list" }, el("b", { className: "bad", textContent: `Doesn't work in (${res.blocked.length}): ` }), res.blocked.map(c => c.name).join(", ") || "None")));
+            }
+            const note = await linkNote(false); if (note) kids.push(note);
+            show(...kids);
+        } catch { show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: "Couldn't read this bundle's games." })); }
+        finally { busy = false; }
+    }
+
     function tick() {
         const m = PAGE.exec(location.pathname);
         if (!m) { lastSlug = ""; unmount(); return; }
-        const key = m[1] + "/" + m[2];
+        const key = m[1] + "/" + m[2] + "/" + m[3];
         if (key === lastSlug || lastSlug === "closed:" + location.pathname || busy) return;
         lastSlug = key;
         const go = el("button", { className: "go", textContent: "Check all regions" });
-        go.addEventListener("click", () => { go.disabled = true; go.textContent = "Checking…"; check(m[1], m[2]); });
-        show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: "See every country this key activates in, in one go." }), el("div", { style: "margin-top:8px" }, go));
+        go.addEventListener("click", () => { go.disabled = true; go.textContent = "Checking…"; (m[2] === "pick-and-mix" ? checkPick : check)(m[1], m[3]); });
+        show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: m[2] === "pick-and-mix" ? "Check which games in this bundle activate in every country." : "See every country this key activates in, in one go." }), el("div", { style: "margin-top:8px" }, go));
         linkNote(false).then(n => { if (n && lastSlug === key && root && !root.querySelector(".linknote")) root.querySelector(".card")?.append(n); });
     }
     tick(); setInterval(tick, 1200); // Fanatical is a single-page app, so the address changes without a reload
