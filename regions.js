@@ -76,72 +76,172 @@
     const unmount = () => { host?.remove(); host = null; root = null; };
     const show = (...kids) => { mount(); const x = el("button", { className: "x", textContent: "×", title: "Close" }); x.addEventListener("click", () => { unmount(); lastSlug = "closed:" + location.pathname; }); root.replaceChildren(el("div", { className: "card" }, x, ...kids)); };
 
+    // ---------- the results window: a centered, see-through panel over the page ----------
+    const MCSS = `
+      :host { all: initial; }
+      .back { position: fixed; inset: 0; z-index: 2147483647; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; background: rgba(6,10,18,.55); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #e8eefc; animation: fgin .18s ease-out; }
+      @keyframes fgin { from { opacity: 0; } to { opacity: 1; } } @keyframes fgup { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+      .win { width: min(900px, 100%); max-height: min(86vh, 860px); display: flex; flex-direction: column; background: rgba(15,22,35,.84); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2); border: 1px solid rgba(141,162,200,.28); border-radius: 22px; box-shadow: 0 30px 90px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06); overflow: hidden; animation: fgup .22s ease-out; }
+      .head { display: flex; align-items: flex-start; gap: 14px; padding: 22px 26px 16px; border-bottom: 1px solid rgba(141,162,200,.16); background: linear-gradient(180deg, rgba(77,163,255,.10), transparent); }
+      .head .ttl { flex: 1; min-width: 0; } .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #7fb4ff; }
+      .head h2 { margin: 4px 0 0; font-size: 24px; line-height: 1.2; font-weight: 800; color: #fff; overflow-wrap: anywhere; }
+      .xbtn, .bk { flex: none; border: 1px solid rgba(141,162,200,.25); background: rgba(255,255,255,.06); color: #c4d0e6; border-radius: 999px; cursor: pointer; font: inherit; }
+      .xbtn { width: 36px; height: 36px; font-size: 20px; line-height: 1; } .bk { padding: 7px 14px; font-size: 13px; font-weight: 650; margin-bottom: 8px; }
+      .xbtn:hover, .bk:hover { background: rgba(255,255,255,.14); color: #fff; }
+      .scroll { overflow: auto; padding: 20px 26px 24px; }
+      .verdict { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 16px; border: 1px solid; margin-bottom: 16px; }
+      .verdict .ic { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; font-weight: 800; }
+      .verdict b { display: block; font-size: 19px; } .verdict span { font-size: 13px; color: #c4d0e6; }
+      .v-good { background: rgba(61,220,151,.10); border-color: rgba(61,220,151,.4); } .v-good .ic { background: rgba(61,220,151,.2); color: #3ddc97; } .v-good b { color: #3ddc97; }
+      .v-warn { background: rgba(255,184,77,.10); border-color: rgba(255,184,77,.4); } .v-warn .ic { background: rgba(255,184,77,.2); color: #ffb84d; } .v-warn b { color: #ffb84d; }
+      .v-bad { background: rgba(255,107,107,.10); border-color: rgba(255,107,107,.4); } .v-bad .ic { background: rgba(255,107,107,.2); color: #ff6b6b; } .v-bad b { color: #ff6b6b; }
+      .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+      .tile { padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(141,162,200,.18); }
+      .tile i { display: block; font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8da2c8; } .tile strong { display: block; margin-top: 4px; font-size: 28px; line-height: 1.1; font-weight: 800; }
+      .good { color: #3ddc97; } .warn { color: #ffb84d; } .bad { color: #ff6b6b; }
+      .meter { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: rgba(255,107,107,.55); margin-bottom: 20px; } .meter span { background: linear-gradient(90deg, #2bc489, #3ddc97); }
+      .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; } .cols.one { grid-template-columns: 1fr; }
+      .pane { border-radius: 16px; background: rgba(255,255,255,.04); border: 1px solid rgba(141,162,200,.16); padding: 14px 16px; min-width: 0; }
+      .pane h3 { margin: 0 0 10px; font-size: 14px; font-weight: 750; display: flex; align-items: center; gap: 8px; } .pane h3 em { font-style: normal; font-size: 12px; padding: 2px 9px; border-radius: 99px; background: rgba(255,255,255,.1); color: #e8eefc; }
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 260px; overflow: auto; padding-right: 4px; } .chip { padding: 4px 10px; border-radius: 99px; font-size: 12px; background: rgba(255,255,255,.07); border: 1px solid rgba(141,162,200,.16); color: #dbe5f7; }
+      .p-good .chip { border-color: rgba(61,220,151,.28); } .p-bad .chip { border-color: rgba(255,107,107,.28); } .none { color: #8da2c8; font-size: 13px; }
+      .find { display: flex; gap: 10px; align-items: center; margin: 16px 0 0; flex-wrap: wrap; }
+      .find input { flex: 1; min-width: 180px; padding: 10px 14px; font: inherit; color: #fff; background: rgba(255,255,255,.07); border: 1px solid rgba(141,162,200,.3); border-radius: 12px; outline: none; } .find input:focus { border-color: #4da3ff; }
+      .answer { font-weight: 700; font-size: 13px; padding: 6px 12px; border-radius: 99px; } .answer.y { background: rgba(61,220,151,.16); color: #3ddc97; } .answer.n { background: rgba(255,107,107,.16); color: #ff6b6b; } .answer.q { color: #8da2c8; font-weight: 500; }
+      .filters { display: flex; gap: 8px; margin: 0 0 14px; flex-wrap: wrap; } .fl { padding: 7px 14px; border-radius: 99px; border: 1px solid rgba(141,162,200,.25); background: rgba(255,255,255,.05); color: #c4d0e6; font: inherit; font-size: 13px; font-weight: 650; cursor: pointer; } .fl.on { background: linear-gradient(90deg, #4da3ff, #7c6cff); color: #fff; border-color: transparent; }
+      .games { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+      .game { text-align: left; padding: 14px 16px; border-radius: 14px; border: 1px solid rgba(141,162,200,.2); background: rgba(255,255,255,.05); color: inherit; font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
+      .game:hover { background: rgba(255,255,255,.11); border-color: rgba(141,162,200,.45); } .game b { font-size: 14px; line-height: 1.3; } .game small { color: #8da2c8; font-size: 12px; }
+      .badge { align-self: flex-start; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 3px 10px; border-radius: 99px; }
+      .b-good { background: rgba(61,220,151,.18); color: #3ddc97; } .b-warn { background: rgba(255,184,77,.18); color: #ffb84d; } .b-bad { background: rgba(255,107,107,.18); color: #ff6b6b; }
+      .foot { padding: 12px 26px; border-top: 1px solid rgba(141,162,200,.14); font-size: 12px; color: #8da2c8; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+      @media (max-width: 640px) { .tiles { grid-template-columns: 1fr 1fr 1fr; } .cols { grid-template-columns: 1fr; } .head h2 { font-size: 19px; } .tile strong { font-size: 22px; } }
+    `;
+    let mHost = null, mRoot = null;
+    const closeModal = () => { mHost?.remove(); mHost = null; mRoot = null; document.removeEventListener("keydown", onKey, true); };
+    const onKey = e => { if (e.key === "Escape") { e.stopPropagation(); closeModal(); } };
+    /** Builds the window once and returns a function that swaps what's inside it. */
+    function openModal() {
+        closeModal();
+        mHost = el("div"); mHost.id = "fg-regions-modal";
+        const sh = mHost.attachShadow({ mode: "open" }); sh.append(el("style", { textContent: MCSS }));
+        const back = el("div", { className: "back" }); mRoot = back; sh.append(back);
+        back.addEventListener("mousedown", e => { if (e.target === back) closeModal(); });
+        document.addEventListener("keydown", onKey, true);
+        document.documentElement.append(mHost);
+    }
+    function paint({ eyebrow = "Region check", title, back, body, foot }) {
+        const x = el("button", { className: "xbtn", textContent: "×", title: "Close (Esc)", "aria-label": "Close" }); x.addEventListener("click", closeModal);
+        const ttl = el("div", { className: "ttl" }, back || null, el("div", { className: "eyebrow", textContent: eyebrow }), el("h2", { textContent: title }));
+        const win = el("div", { className: "win", role: "dialog", "aria-modal": "true" }, el("div", { className: "head" }, ttl, x), el("div", { className: "scroll" }, ...body), el("div", { className: "foot" }, ...(foot || [el("span", { textContent: "Checked against Fanatical's own region lists." })])));
+        mRoot.replaceChildren(win);
+        x.focus({ preventScroll: true });
+        return win;
+    }
+    const chips = list => el("div", { className: "chips" }, ...(list.length ? list.map(c => el("span", { className: "chip", textContent: c.name })) : [el("span", { className: "none", textContent: "None" })]));
+
+    /** One game or bundle: verdict, numbers, and both country lists. */
+    function singleBody(res) {
+        const total = res.works.length + res.blocked.length, pct = total ? (res.works.length / total) * 100 : 0;
+        const mode = res.global ? "good" : !res.works.length ? "bad" : res.blocked.length < res.works.length ? "warn" : "bad";
+        const head = res.global ? ["✓", "Global: activates everywhere", `No country is blocked. All ${total} checked.`]
+            : !res.works.length ? ["✕", "Blocked everywhere", "This key doesn't activate in any country on Fanatical's list."]
+            : ["!", "Region-locked", `Activates in ${res.works.length} of ${total} countries.`];
+        const nodes = [el("div", { className: "verdict v-" + mode }, el("div", { className: "ic", textContent: head[0] }), el("div", {}, el("b", { textContent: head[1] }), el("span", { textContent: head[2] }))),
+            el("div", { className: "tiles" }, el("div", { className: "tile" }, el("i", { textContent: "Works in" }), el("strong", { className: "good", textContent: String(res.works.length) })),
+                el("div", { className: "tile" }, el("i", { textContent: "Blocked in" }), el("strong", { className: res.blocked.length ? "bad" : "", textContent: String(res.blocked.length) })),
+                el("div", { className: "tile" }, el("i", { textContent: "Countries checked" }), el("strong", { textContent: String(total) }))),
+            el("div", { className: "meter", title: `${Math.round(pct)}% of countries` }, el("span", { style: `width:${pct}%` }))];
+        if (!res.global) {
+            const mk = (cls, label, list) => el("div", { className: "pane " + cls }, el("h3", { className: cls === "p-good" ? "good" : "bad" }, label, el("em", { textContent: String(list.length) })), chips(list));
+            nodes.push(el("div", { className: "cols" + (!res.works.length || !res.blocked.length ? " one" : "") }, ...(res.works.length ? [mk("p-good", "Works in", res.works)] : []), ...(res.blocked.length ? [mk("p-bad", "Doesn't work in", res.blocked)] : [])));
+            const out = el("span", { className: "answer q", textContent: "Type a country to check it." }), inp = el("input", { type: "text", placeholder: "Check a country, like Germany or JP", spellcheck: false });
+            inp.addEventListener("input", () => {
+                const q = inp.value.trim().toLowerCase();
+                if (q.length < 2) { out.className = "answer q"; out.textContent = "Type a country to check it."; return; }
+                const all = [...res.works.map(c => [c, true]), ...res.blocked.map(c => [c, false])];
+                const hit = all.find(([c]) => c.code.toLowerCase() === q || c.name.toLowerCase() === q) || all.find(([c]) => c.name.toLowerCase().startsWith(q)) || all.find(([c]) => c.name.toLowerCase().includes(q));
+                if (!hit) { out.className = "answer q"; out.textContent = "No country by that name."; return; }
+                out.className = "answer " + (hit[1] ? "y" : "n"); out.textContent = `${hit[0].name}: ${hit[1] ? "activates" : "does NOT activate"}`;
+            });
+            nodes.push(el("div", { className: "find" }, inp, out));
+        }
+        return nodes;
+    }
+    const footWith = async extra => { const f = [el("span", { textContent: extra || "Checked against Fanatical's own region lists." })]; const n = await linkNote(false); if (n) { n.style.cssText = "margin:0;padding:0;border:0"; f.push(n); } return f; };
+    const cleanTitle = () => document.title.replace(/\s*\|\s*Fanatical.*$/i, "").replace(/\s*\|\s*(Steam|PC|Mac).*$/i, "").trim();
+
+    let lastView = null; // so the launcher card can bring the window back after it's closed
     async function check(lang, slug) {
         busy = true;
         try {
             const r = await fetch(`/api/products-group/${encodeURIComponent(slug)}/${encodeURIComponent(lang)}`, { credentials: "omit" });
-            if (!r.ok) return show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: "Couldn't read this game's region list. Try the page's own Check Regions button." }));
+            if (!r.ok) throw new Error("http");
             const product = await r.json(), res = analyze(product, allCountries([...(product.regions_included || []), ...(product.regions_excluded || [])]));
-            const total = res.works.length + res.blocked.length, kids = [el("h4", { textContent: "Region check" })];
-            if (res.global) kids.push(el("div", { className: "big good", textContent: "Global: activates everywhere" }), el("div", { className: "muted", textContent: `No country is blocked (${total} checked).` }));
-            else if (!res.works.length) kids.push(el("div", { className: "big bad", textContent: "Blocked everywhere" }));
-            else kids.push(el("div", { className: "big " + (res.blocked.length < res.works.length ? "warn" : "bad"), textContent: `Region-locked: works in ${res.works.length} of ${total} countries` }));
-            if (!res.global) {
-                const mk = (title, list, cls) => el("details", {}, el("summary", { className: cls, textContent: `${title} (${list.length})` }), el("div", { className: "list", textContent: list.map(c => c.name).join(", ") || "None" }));
-                // The shorter list opens first, since that's the one worth reading.
-                const a = mk("Works in", res.works, "good"), b = mk("Doesn't work in", res.blocked, "bad");
-                (res.works.length <= res.blocked.length ? a : b).open = true;
-                kids.push(a, b);
-                const out = el("div", { className: "muted" }), inp = el("input", { type: "text", placeholder: "Check a country…" });
-                inp.addEventListener("input", () => {
-                    const q = inp.value.trim().toLowerCase(); if (q.length < 2) { out.textContent = ""; return; }
-                    const hit = [...res.works.map(c => [c, true]), ...res.blocked.map(c => [c, false])].find(([c]) => c.name.toLowerCase().startsWith(q) || c.name.toLowerCase().includes(q) || c.code.toLowerCase() === q);
-                    out.textContent = hit ? `${hit[0].name}: ${hit[1] ? "activates" : "does NOT activate"}` : "No country by that name.";
-                });
-                kids.push(inp, out);
-            }
-            if (Array.isArray(product.editions) && product.editions.some(e => (e.regions_included?.length || 0) + (e.regions_excluded?.length || 0) > 0)) kids.push(el("div", { className: "muted", textContent: "Some editions have their own region list. This is the main game's; check the others on the page." }));
-            const note = await linkNote(false); if (note) kids.push(note);
-            show(...kids);
-        } catch { show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: "Couldn't read this game's region list." })); }
+            const body = singleBody(res);
+            if (Array.isArray(product.editions) && product.editions.some(e => (e.regions_included?.length || 0) + (e.regions_excluded?.length || 0) > 0)) body.push(el("div", { className: "none", style: "margin-top:14px", textContent: "Some editions have their own region list. This is the main one." }));
+            const foot = await footWith();
+            lastView = () => { openModal(); paint({ title: product.name || cleanTitle(), body, foot }); };
+            lastView();
+        } catch { openModal(); paint({ title: cleanTitle() || "Region check", body: [el("div", { className: "verdict v-warn" }, el("div", { className: "ic", textContent: "!" }), el("div", {}, el("b", { textContent: "Couldn't read the region list" }), el("span", { textContent: "Try the page's own Check Regions button, or try again in a moment." })))] }); }
         finally { busy = false; }
     }
 
-    /** Build-your-own bundles: every game in the pool has its own region list, so each one gets its own verdict. */
+    /** Build-your-own bundles: every game in the pool has its own region list, so each one gets its own card and its own verdict. */
     async function checkPick(lang, slug) {
         busy = true;
         try {
             const r = await fetch(`/api/pick-and-mix/${encodeURIComponent(slug)}/${encodeURIComponent(lang)}`, { credentials: "omit" });
-            if (!r.ok) return show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: "Couldn't read this bundle's games. Try again in a moment." }));
+            if (!r.ok) throw new Error("http");
             const bundle = await r.json(), games = (Array.isArray(bundle.products) ? bundle.products : []).filter(p => p && p.name);
-            if (!games.length) return show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: "No games found in this bundle." }));
-            const extra = games.flatMap(p => [...(p.regions_included || []), ...(p.regions_excluded || [])]);
-            const uni = allCountries(extra);
+            if (!games.length) throw new Error("none");
+            const uni = allCountries(games.flatMap(p => [...(p.regions_included || []), ...(p.regions_excluded || [])]));
             const rows = games.map(p => ({ name: p.name, res: analyze(p, uni) })).sort((a, b) => (a.res.global === b.res.global ? a.name.localeCompare(b.name) : a.res.global ? -1 : 1));
-            const globals = rows.filter(x => x.res.global).length;
-            const kids = [el("h4", { textContent: "Region check" }),
-                el("div", { className: "big " + (globals === rows.length ? "good" : globals ? "warn" : "bad"), textContent: globals === rows.length ? "Every game is global" : `${globals} of ${rows.length} games are global` }),
-                el("div", { className: "muted", textContent: `Checked ${uni.size} countries for each game. Each game is checked on its own. Open a locked one to see where it works.` })];
-            for (const { name, res } of rows) {
-                if (res.global) { kids.push(el("div", { className: "muted" }, el("span", { className: "good", textContent: "\u2713 " }), name)); continue; }
-                kids.push(el("details", {}, el("summary", { className: res.works.length > res.blocked.length ? "warn" : "bad", textContent: `${name}: works in ${res.works.length} of ${res.works.length + res.blocked.length}` }),
-                    el("div", { className: "list" }, el("b", { className: "good", textContent: `Works in (${res.works.length}): ` }), res.works.map(c => c.name).join(", ") || "None"),
-                    el("div", { className: "list" }, el("b", { className: "bad", textContent: `Doesn't work in (${res.blocked.length}): ` }), res.blocked.map(c => c.name).join(", ") || "None")));
-            }
-            const note = await linkNote(false); if (note) kids.push(note);
-            show(...kids);
-        } catch { show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: "Couldn't read this bundle's games." })); }
+            const kindOf = res => res.global ? "good" : res.works.length > res.blocked.length ? "warn" : "bad";
+            const nGlobal = rows.filter(x => x.res.global).length, nLocked = rows.length - nGlobal;
+            const foot = await footWith("Every game in a build-your-own bundle has its own region list.");
+            const title = bundle.name || cleanTitle();
+            const list = (filter = "all") => {
+                const bodyNodes = [];
+                const mode = nLocked === 0 ? "good" : nGlobal ? "warn" : "bad";
+                bodyNodes.push(el("div", { className: "verdict v-" + mode }, el("div", { className: "ic", textContent: nLocked === 0 ? "✓" : "!" }), el("div", {}, el("b", { textContent: nLocked === 0 ? "Every game is global" : `${nGlobal} of ${rows.length} games are global` }), el("span", { textContent: nLocked === 0 ? `All ${uni.size} countries work for every game in the pool.` : "Region-locked games only activate in some countries. Pick one to see exactly where." }))),
+                    el("div", { className: "tiles" }, el("div", { className: "tile" }, el("i", { textContent: "Global games" }), el("strong", { className: "good", textContent: String(nGlobal) })), el("div", { className: "tile" }, el("i", { textContent: "Region-locked" }), el("strong", { className: nLocked ? "warn" : "", textContent: String(nLocked) })), el("div", { className: "tile" }, el("i", { textContent: "Games in the pool" }), el("strong", { textContent: String(rows.length) }))));
+                const fl = el("div", { className: "filters" });
+                for (const [id, label] of [["all", `All (${rows.length})`], ["good", `Global (${nGlobal})`], ["locked", `Region-locked (${nLocked})`]]) {
+                    if (id !== "all" && !(id === "good" ? nGlobal : nLocked)) continue;
+                    const b = el("button", { className: "fl" + (filter === id ? " on" : ""), textContent: label }); b.addEventListener("click", () => paint2(id)); fl.append(b);
+                }
+                bodyNodes.push(fl);
+                const grid = el("div", { className: "games" });
+                for (const g of rows.filter(x => filter === "all" || (filter === "good" ? x.res.global : !x.res.global))) {
+                    const k = kindOf(g.res), tot = g.res.works.length + g.res.blocked.length;
+                    const card = el("button", { className: "game", type: "button" }, el("span", { className: "badge b-" + k, textContent: g.res.global ? "Global" : k === "bad" ? "Mostly blocked" : "Region-locked" }), el("b", { textContent: g.name }), el("small", { textContent: g.res.global ? `Works in all ${tot} countries` : `Works in ${g.res.works.length} of ${tot} countries` }));
+                    card.addEventListener("click", () => detail(g)); grid.append(card);
+                }
+                bodyNodes.push(grid);
+                return bodyNodes;
+            };
+            const paint2 = f => paint({ eyebrow: "Region check · build your own bundle", title, body: list(f), foot });
+            const detail = g => { const bk = el("button", { className: "bk", textContent: "← All games" }); bk.addEventListener("click", () => paint2("all")); paint({ eyebrow: "Region check", title: g.name, back: bk, body: singleBody(g.res), foot }); };
+            lastView = () => { openModal(); paint2("all"); };
+            lastView();
+        } catch { openModal(); paint({ title: cleanTitle() || "Region check", body: [el("div", { className: "verdict v-warn" }, el("div", { className: "ic", textContent: "!" }), el("div", {}, el("b", { textContent: "Couldn't read this bundle's games" }), el("span", { textContent: "Try again in a moment." })))] }); }
         finally { busy = false; }
     }
 
     function tick() {
         const m = PAGE.exec(location.pathname);
-        if (!m) { lastSlug = ""; unmount(); return; }
+        if (!m) { lastSlug = ""; lastView = null; closeModal(); unmount(); return; }
         const key = m[1] + "/" + m[2] + "/" + m[3];
         if (key === lastSlug || lastSlug === "closed:" + location.pathname || busy) return;
-        lastSlug = key;
+        lastSlug = key; lastView = null; closeModal();
         const go = el("button", { className: "go", textContent: "Check all regions" });
-        go.addEventListener("click", () => { go.disabled = true; go.textContent = "Checking…"; (m[2] === "pick-and-mix" ? checkPick : check)(m[1], m[3]); });
+        go.addEventListener("click", async () => {
+            if (lastView) { lastView(); return; }
+            go.disabled = true; go.textContent = "Checking…";
+            await (m[2] === "pick-and-mix" ? checkPick : check)(m[1], m[3]);
+            go.disabled = false; go.textContent = lastView ? "View results" : "Try again";
+        });
         show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: m[2] === "pick-and-mix" ? "Check which games in this bundle activate in every country." : "See every country this key activates in, in one go." }), el("div", { style: "margin-top:8px" }, go));
         linkNote(false).then(n => { if (n && lastSlug === key && root && !root.querySelector(".linknote")) root.querySelector(".card")?.append(n); });
     }
