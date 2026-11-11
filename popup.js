@@ -6,6 +6,14 @@
     const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); for (const k of kids.flat()) if (k) n.append(k); return n; };
     const open = url => { chrome.tabs.create({ url }); window.close(); };
     document.getElementById("ver").textContent = "v" + chrome.runtime.getManifest().version;
+    chrome.storage.local.get("whatsNew").then(({ whatsNew }) => {
+        if (!whatsNew) return;
+        const bar = document.createElement("div"); bar.className = "whatsnew";
+        const t = document.createElement("span"); t.textContent = `Updated to v${whatsNew}: prices and sale history on Steam pages, plus new alerts.`;
+        const x = document.createElement("button"); x.textContent = "Got it";
+        x.addEventListener("click", () => { chrome.storage.local.remove("whatsNew"); bar.remove(); });
+        bar.append(t, x); document.querySelector("header").after(bar);
+    }).catch(() => {});
     for (const a of document.querySelectorAll("a[data-go]")) a.addEventListener("click", e => { e.preventDefault(); open(SVC + a.dataset.go); });
     for (const a of document.querySelectorAll("a[data-steam]")) a.addEventListener("click", e => { e.preventDefault(); open("https://store.steampowered.com" + a.dataset.steam); });
 

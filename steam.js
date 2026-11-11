@@ -57,9 +57,9 @@
     textarea:focus, input[type=text]:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(77,163,255,.2); }
     ::placeholder { color: var(--muted); opacity: .85; }
     .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
-    button.b { height: 36px; padding: 0 18px; border-radius: 999px; border: 0; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text); background: var(--soft2);
+    button.b, a.b { display: inline-flex; align-items: center; text-decoration: none; height: 36px; padding: 0 18px; border-radius: 999px; border: 0; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text); background: var(--soft2);
         transition: background .12s, filter .12s, transform .12s; }
-    button.b:hover:not(:disabled) { background: rgba(77,163,255,.25); color: var(--white); }
+    a.b:hover, button.b:hover:not(:disabled) { background: rgba(77,163,255,.25); color: var(--white); }
     button.b.go { color: #04150d; background: linear-gradient(90deg, #3ddc97, #5fe9b0); }
     button.b.go:hover:not(:disabled) { background: linear-gradient(90deg, #3ddc97, #5fe9b0); filter: brightness(1.08); transform: translateY(-1px); }
     button.b.stop { color: #fff; background: #d64545; }
@@ -510,6 +510,7 @@
             else if (x.status === "no_overlay") say("Make your overlay link first (Streamer hub on the dashboard).", false);
             else say(x.message || "Could not do that right now.", false);
         }));
+        buttons.push(el("a", { className: "b small", href: "https://steamvaluechecker.com/game/" + appMatch[1], target: "_blank", rel: "noopener noreferrer", textContent: "Price history" }));
         const soc = r.social;
         const card = el("div", { className: "card wide" }, close, el("h4", { textContent: "Steam Value Checker" }),
             r.owned && el("span", { className: "tag", textContent: "In your library" }),

@@ -318,7 +318,7 @@ async function refreshBadge() {
 }
 chrome.alarms?.create(BADGE_ALARM, { periodInMinutes: 30 });
 chrome.alarms?.onAlarm.addListener(a => { if (a.name === BADGE_ALARM) refreshBadge(); });
-chrome.runtime.onInstalled.addListener(() => { chrome.alarms?.create(BADGE_ALARM, { periodInMinutes: 30 }); refreshBadge(); });
+chrome.runtime.onInstalled.addListener(d => { if (d?.reason === "update") chrome.storage.local.set({ whatsNew: chrome.runtime.getManifest().version }); chrome.alarms?.create(BADGE_ALARM, { periodInMinutes: 30 }); refreshBadge(); });
 chrome.runtime.onStartup.addListener(refreshBadge);
 chrome.storage.onChanged.addListener((c, area) => { if (area === "local" && c.svcToken) refreshBadge(); }); // linking or unlinking updates it straight away
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
