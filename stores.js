@@ -34,6 +34,7 @@
     };
 
     let host = null, root = null, lastKey = "";
+    const SK = s => (window.__fgSkin ? window.__fgSkin(s, "navy") : s);
     const css = `
       :host { all: initial; }
       .card { position: fixed; right: 18px; bottom: 18px; z-index: 2147483646; width: 290px; max-width: calc(100vw - 36px); max-height: calc(100vh - 36px); overflow: auto; padding: 14px 16px; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #e8eefc; background: #0f1623; border: 1px solid #25324a; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
@@ -59,11 +60,11 @@
             if (Date.now() - (v.linkHintHidden || 0) < 7 * 86400_000) return null;
         } catch { return null; }
         const a = el("a", { href: DASH, target: "_blank", rel: "noopener noreferrer", textContent: "Link now" });
-        a.style.cssText = "display:inline-block;margin-top:6px;padding:5px 12px;border-radius:999px;font-weight:650;font-size:12px;color:#fff;text-decoration:none;background:linear-gradient(90deg,#4da3ff,#7c6cff)";
+        a.style.cssText = SK("display:inline-block;margin-top:6px;padding:5px 12px;border-radius:999px;font-weight:650;font-size:12px;color:#fff;text-decoration:none;background:linear-gradient(90deg,#4da3ff,#7c6cff)");
         const hide = el("button", { textContent: "Not now" });
         hide.style.cssText = "margin-left:8px;background:none;border:0;color:#8da2c8;font:inherit;font-size:12px;cursor:pointer";
         const box = el("div", { className: "muted linknote" }, el("b", { textContent: bad ? "Your link stopped working. " : "Get more out of this. " }), bad ? "Link again to switch your prices, bundle checks and wishlist back on." : "Link with Steam Value Checker (free) to see prices from every store, whether you own a game, wishlist sales and more.", el("br"), a, hide);
-        box.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid #25324a";
+        box.style.cssText = SK("margin-top:10px;padding-top:8px;border-top:1px solid #25324a");
         hide.addEventListener("click", async () => { try { await chrome.storage.local.set({ linkHintHidden: Date.now() }); } catch { /* ignore */ } box.remove(); });
         return box;
     }
@@ -71,7 +72,7 @@
         if (host?.isConnected) return;
         host = el("div"); host.id = "fg-stores-card";
         const shadow = host.attachShadow({ mode: "open" });
-        shadow.append(el("style", { textContent: css })); root = el("div"); shadow.append(root);
+        shadow.append(el("style", { textContent: SK(css) })); root = el("div"); shadow.append(root);
         document.documentElement.append(host);
     }
     const unmount = () => { host?.remove(); host = null; root = null; };

@@ -35,6 +35,8 @@
     }
     window.__fgRegionsAnalyze = analyze; // for tests
 
+    const SK = s => (window.__fgSkin ? window.__fgSkin(s, "orange") : s);
+    const GMG = /(^|\.)greenmangaming\.com$/.test(location.hostname);
     const css = `
       :host { all: initial; }
       .card { position: relative; width: 100%; max-height: 60vh; overflow: auto; padding: 14px 16px; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #f2f2f2; background: #1a1a1a; border: 1px solid #333; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
@@ -58,11 +60,11 @@
             if (Date.now() - (v.linkHintHidden || 0) < 7 * 86400_000) return null;
         } catch { return null; }
         const a = el("a", { href: DASH, target: "_blank", rel: "noopener noreferrer", textContent: "Link now" });
-        a.style.cssText = "display:inline-block;margin-top:6px;padding:5px 12px;border-radius:999px;font-weight:650;font-size:12px;color:#111;text-decoration:none;background:linear-gradient(90deg,#ffa726,#f57c00)";
+        a.style.cssText = SK("display:inline-block;margin-top:6px;padding:5px 12px;border-radius:999px;font-weight:650;font-size:12px;color:#111;text-decoration:none;background:linear-gradient(90deg,#ffa726,#f57c00)");
         const hide = el("button", { textContent: "Not now" });
         hide.style.cssText = "margin-left:8px;background:none;border:0;color:#a8a8a8;font:inherit;font-size:12px;cursor:pointer";
         const box = el("div", { className: "muted linknote" }, el("b", { textContent: bad ? "Your link stopped working. " : "Get more out of this. " }), bad ? "Link again to switch your prices, bundle checks and wishlist back on." : "Link with Steam Value Checker (free) to see prices from every store, whether you own a game, wishlist sales and more.", el("br"), a, hide);
-        box.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid #333";
+        box.style.cssText = SK("margin-top:10px;padding-top:8px;border-top:1px solid #333");
         hide.addEventListener("click", async () => { try { await chrome.storage.local.set({ linkHintHidden: Date.now() }); } catch { /* ignore */ } box.remove(); });
         return box;
     }
@@ -70,7 +72,7 @@
     function mount() {
         if (host?.isConnected) return;
         host = el("div", { style: "pointer-events:auto;width:100%" }); host.id = "fg-regions-card";
-        const shadow = host.attachShadow({ mode: "open" }); shadow.append(el("style", { textContent: css })); root = el("div"); shadow.append(root);
+        const shadow = host.attachShadow({ mode: "open" }); shadow.append(el("style", { textContent: SK(css) })); root = el("div"); shadow.append(root);
         (window.__fgStack ? window.__fgStack() : document.documentElement).append(host);
     }
     const unmount = () => { host?.remove(); host = null; root = null; };
@@ -124,7 +126,7 @@
     function openModal() {
         closeModal();
         mHost = el("div"); mHost.id = "fg-regions-modal";
-        const sh = mHost.attachShadow({ mode: "open" }); sh.append(el("style", { textContent: MCSS }));
+        const sh = mHost.attachShadow({ mode: "open" }); sh.append(el("style", { textContent: SK(MCSS) }));
         const back = el("div", { className: "back" }); mRoot = back; sh.append(back);
         back.addEventListener("mousedown", e => { if (e.target === back) closeModal(); });
         document.addEventListener("keydown", onKey, true);
@@ -229,8 +231,37 @@
         finally { busy = false; }
     }
 
+    /** Green Man Gaming: its own "View Regions" link calls this endpoint with the product's code, which gives the countries it works in by name. */
+    async function checkGmg() {
+        busy = true;
+        try {
+            const sku = document.querySelector("gmgprice[sku]")?.getAttribute("sku");
+            if (!sku) throw new Error("nosku");
+            const r = await fetch(`/api/v2/pdp_regional_restrictions?sku=${encodeURIComponent(sku)}`, { credentials: "include" });
+            if (!r.ok) throw new Error("http");
+            const d = await r.json();
+            const norm = n => String(n || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9 ]/g, "").replace(/\bthe\b/g, "").replace(/\s+/g, " ").trim();
+            const uni = allCountries();
+            let res;
+            if (!d.HasRegionalRestrictions) res = analyze({}, uni);
+            else {
+                const names = new Set((d.AvailableCountries || []).map(norm)), used = new Set();
+                const works = [], blocked = [];
+                for (const [code, name] of uni) { if (names.has(norm(name))) { works.push({ code, name }); used.add(norm(name)); } else blocked.push({ code, name }); }
+                for (const n of d.AvailableCountries || []) if (!used.has(norm(n))) works.push({ code: n, name: n }); // a name Intl words differently still counts as working
+                const by = (a, b) => a.name.localeCompare(b.name); works.sort(by); blocked.sort(by);
+                res = { global: blocked.length === 0, works, blocked };
+            }
+            const title = (document.querySelector("h1")?.textContent || cleanTitle()).trim();
+            const body = singleBody(res), foot = await footWith("Checked against Green Man Gaming's own region list.");
+            lastView = () => { openModal(); paint({ title, body, foot }); };
+            lastView();
+        } catch { openModal(); paint({ title: cleanTitle() || "Region check", body: [el("div", { className: "verdict v-warn" }, el("div", { className: "ic", textContent: "!" }), el("div", {}, el("b", { textContent: "Couldn't read the region list" }), el("span", { textContent: "Try the page's own View Regions link, or try again in a moment." })))] }); }
+        finally { busy = false; }
+    }
+
     function tick() {
-        const m = PAGE.exec(location.pathname);
+        const m = GMG ? (/^\/games\/([^/?#]+)/.exec(location.pathname) || []).length ? ["", "", "game", /^\/games\/([^/?#]+)/.exec(location.pathname)[1]] : null : PAGE.exec(location.pathname);
         if (!m) { lastSlug = ""; lastView = null; closeModal(); unmount(); return; }
         const key = m[1] + "/" + m[2] + "/" + m[3];
         if (key === lastSlug || lastSlug === "closed:" + location.pathname || busy) return;
@@ -239,7 +270,7 @@
         go.addEventListener("click", async () => {
             if (lastView) { lastView(); return; }
             go.disabled = true; go.textContent = "Checking…";
-            await (m[2] === "pick-and-mix" ? checkPick : check)(m[1], m[3]);
+            await (GMG ? checkGmg : m[2] === "pick-and-mix" ? checkPick : check)(m[1], m[3]);
             go.disabled = false; go.textContent = lastView ? "View results" : "Try again";
         });
         show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: m[2] === "pick-and-mix" ? "Check which games in this bundle activate in every country." : "See every country this key activates in, in one go." }), el("div", { style: "margin-top:8px" }, go));

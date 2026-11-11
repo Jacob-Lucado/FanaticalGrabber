@@ -75,7 +75,10 @@
         "https://www.greenmangaming.com/*"
       ],
       "js": [
-        "stores.js"
+        "theme.js",
+        "stack.js",
+        "stores.js",
+        "regions.js"
       ],
       "run_at": "document_idle"
     },
