@@ -404,8 +404,41 @@
             el("div", { className: "line" }, el("b", { textContent: bad ? "Your link with Steam Value Checker stopped working." : "Link with the Steam Value Checker bot to use the rest of this extension." })),
             el("div", { className: "line", textContent: "It switches on prices and your library status here, playtest and demo badges, how many people in your server own this game, one-click wishlist and stream spotlight. You need to sign in with Discord on the dashboard, with the bot in one of your servers. Only game names are sent, never keys." }),
             el("div", { className: "row" }, go));
-        go.addEventListener("click", () => openDash("/#/library"));
+        go.addEventListener("click", () => openDash(""));
         close.addEventListener("click", async () => { await chrome.storage.local.set({ linkHintHidden: Date.now() }); card.remove(); });
+        root.append(card);
+    }
+
+    /** Free-to-keep games and the auto-claim switch, right on the Steam store so you don't have to open the popup. */
+    async function freeCard() {
+        const b = await send({ type: "badge-status" });
+        if (!b || b.state !== "ok") return;
+        const list = Array.isArray(b.claimable) ? b.claimable : [];
+        const { autoClaim, freeHidden = 0 } = await chrome.storage.local.get(["autoClaim", "freeHidden"]);
+        if (!list.length || Date.now() - freeHidden < 6 * 3600_000) return;
+        const close = el("button", { className: "x", textContent: "\u00d7", "aria-label": "Close" });
+        const note = el("div", { className: "line msg", hidden: true });
+        const say = (t, ok) => { note.hidden = false; note.textContent = t; note.style.color = ok ? "var(--good)" : "var(--warn)"; };
+        const btn = el("button", { className: "b go", type: "button", textContent: `Add ${list.length} free game${list.length === 1 ? "" : "s"} to my account` });
+        btn.addEventListener("click", async () => {
+            btn.disabled = true; let got = 0, had = 0, failed = 0, out = false;
+            for (const g of list) {
+                say(`Adding ${g.title}\u2026`, true);
+                const r = await send({ type: "claim-free", appid: g.appid });
+                if (r?.status === "claimed") got++; else if (r?.status === "owned") had++; else if (r?.status === "not_logged_in") { out = true; break; } else failed++;
+            }
+            if (out) say("Sign in to Steam in this browser first.", false);
+            else say(`Added ${got}${had ? `, ${had} already yours` : ""}${failed ? `, ${failed} didn't work (open its Steam page to claim it)` : ""}.`, !failed || got > 0);
+            btn.disabled = false;
+        });
+        const auto = el("input", { type: "checkbox" }); auto.checked = Boolean(autoClaim);
+        auto.addEventListener("change", () => chrome.storage.local.set({ autoClaim: auto.checked }));
+        const card = el("div", { className: "card wide" }, close, el("h4", { textContent: "Free to keep on Steam" }),
+            el("div", { className: "line", textContent: list.map(g => g.title).join(", ") }),
+            el("div", { className: "row" }, btn),
+            el("label", { className: "line" }, auto, " Add new free games to my account automatically"),
+            note);
+        close.addEventListener("click", async () => { await chrome.storage.local.set({ freeHidden: Date.now() }); card.remove(); });
         root.append(card);
     }
 
@@ -461,6 +494,7 @@
         loadQueue();
     }
     overlay();
+    freeCard();
     if (/^\/(bundle|sub)\/\d+/.test(location.pathname)) bundleHelper();
     if (/^\/cart\/?$/.test(location.pathname)) cartGuard();
 })();
