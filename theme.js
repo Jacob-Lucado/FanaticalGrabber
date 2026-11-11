@@ -1,6 +1,11 @@
 // Lets the extension's pop-ups wear the colors of the store they're on. Fanatical gets black and orange, Green Man Gaming gets its
 // charcoal and green, Humble gets its purple. Other stores keep the default navy. `from` says which palette the string was written in.
 window.__fgSkin = (str, from) => {
+    if (/(^|\.)humblebundle\.com$/.test(location.hostname) && from === "orange") {
+        let out = String(str);
+        for (const [a, b] of [["color:#111;text-decoration:none;background:linear-gradient(90deg,#ffa726,#f57c00)", "color:#fff;text-decoration:none;background:linear-gradient(90deg,#7c3bed,#9b6bf5)"], ["color: #111; background: linear-gradient(90deg, #ffa726, #f57c00)", "color: #fff; background: linear-gradient(90deg, #7c3bed, #9b6bf5)"], ["linear-gradient(90deg, #ffa726, #f57c00); color: #111;", "linear-gradient(90deg, #7c3bed, #9b6bf5); color: #fff;"], ["#ffa726", "#7c3bed"], ["#f57c00", "#9b6bf5"], ["#ff9800", "#a78bfa"], ["rgba(255,152,0,", "rgba(124,59,237,"], ["rgba(26,26,26,.86)", "rgba(15,23,41,.88)"], ["#1a1a1a", "#0f1729"], ["#262626", "#1b2540"], ["#3a3a3a", "#33405f"], ["#333", "#2a3553"]]) out = out.split(a).join(b);
+        return out;
+    }
     if (/(^|\.)humblebundle\.com$/.test(location.hostname) && from === "navy") {
         let out = String(str);
         for (const [a, b] of [["color:#fff;text-decoration:none;background:linear-gradient(90deg,#4da3ff,#7c6cff)", "color:#fff;text-decoration:none;background:linear-gradient(90deg,#7c3bed,#9b6bf5)"], ["#0f1623", "#0f1729"], ["rgba(77,163,255,", "rgba(167,139,250,"], ["#4da3ff", "#a78bfa"]]) out = out.split(a).join(b);

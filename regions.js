@@ -3,7 +3,7 @@
 // Nothing is sent anywhere else.
 (() => {
     if (window.__fgRegions) return; window.__fgRegions = true;
-    if (!/(^|\.)(fanatical|greenmangaming)\.com$/.test(location.hostname)) return; // the same script file ships with the other stores, which have no region check
+    if (!/(^|\.)(fanatical|greenmangaming|humblebundle)\.com$/.test(location.hostname)) return; // the same script file ships with the other stores, which have no region check
     const PAGE = /^\/([a-z]{2}(?:-[A-Za-z]{2})?)\/(game|bundle|pick-and-mix)\/([^/?#]+)/;
 
     /** The countries Fanatical's own "Check Regions" box lists (239), with plain English names. Anything a game lists beyond these is added. */
@@ -37,7 +37,7 @@
     window.__fgRegionsAnalyze = analyze; // for tests
 
     const SK = s => (window.__fgSkin ? window.__fgSkin(s, "orange") : s);
-    const GMG = /(^|\.)greenmangaming\.com$/.test(location.hostname);
+    const GMG = /(^|\.)greenmangaming\.com$/.test(location.hostname), HUMBLE = /(^|\.)humblebundle\.com$/.test(location.hostname);
     const css = `
       :host { all: initial; }
       .card { position: relative; width: 100%; max-height: 60vh; overflow: auto; padding: 14px 16px; box-sizing: border-box; font: 14px/1.4 system-ui, sans-serif; color: #f2f2f2; background: #1a1a1a; border: 1px solid #333; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
@@ -261,8 +261,36 @@
         finally { busy = false; }
     }
 
+    /** Humble: each store page carries the game's country lists in its own data (disallowedCountries / exclusiveCountries). The page is fetched fresh so a page you reached by clicking around can't show the last game's lists. */
+    async function checkHumble() {
+        busy = true;
+        try {
+            const r = await fetch(location.pathname, { credentials: "include" });
+            if (!r.ok || r.redirected && /age-gate/.test(r.url)) throw new Error("http");
+            const html = await r.text();
+            const grab = key => { const m = new RegExp('\\\\?"' + key + '\\\\?":\\[([^\\]]*)\\]').exec(html); if (!m) return null; return [...m[1].matchAll(/\\?"([^"\\]+)\\?"/g)].map(x => x[1].trim()).filter(Boolean); };
+            const dis = grab("disallowedCountries"), exc = grab("exclusiveCountries");
+            if (dis == null && exc == null) throw new Error("nodata");
+            const uni = allCountries();
+            const byName = new Map([...uni].map(([c, n]) => [n.toLowerCase(), c]));
+            const asCode = v => (/^[A-Za-z]{2}$/.test(v) ? v.toUpperCase() : byName.get(v.toLowerCase()) || null);
+            const toSet = list => new Set((list || []).map(asCode).filter(Boolean));
+            let works, blocked;
+            const all = [...uni].map(([code, name]) => ({ code, name }));
+            if (exc && exc.length) { const ok = toSet(exc); works = all.filter(c => ok.has(c.code)); blocked = all.filter(c => !ok.has(c.code)); }
+            else if (dis && dis.length) { const no = toSet(dis); blocked = all.filter(c => no.has(c.code)); works = all.filter(c => !no.has(c.code)); }
+            else { works = all; blocked = []; }
+            const res = { global: blocked.length === 0, works, blocked };
+            const title = (document.querySelector("h1")?.textContent || [...document.querySelectorAll("h2")].map(h => h.textContent.trim()).find(t => t && !/^read more/i.test(t)) || cleanTitle()).trim();
+            const body = singleBody(res), foot = await footWith("Checked against Humble's own country lists for this game.");
+            lastView = () => { openModal(); paint({ title, body, foot }); };
+            lastView();
+        } catch { openModal(); paint({ title: cleanTitle() || "Region check", body: [el("div", { className: "verdict v-warn" }, el("div", { className: "ic", textContent: "!" }), el("div", {}, el("b", { textContent: "Couldn't read the region list" }), el("span", { textContent: "Humble didn't give this page's country lists. Try again in a moment." })))] }); }
+        finally { busy = false; }
+    }
+
     function tick() {
-        const m = GMG ? (/^\/games\/([^/?#]+)/.exec(location.pathname) || []).length ? ["", "", "game", /^\/games\/([^/?#]+)/.exec(location.pathname)[1]] : null : PAGE.exec(location.pathname);
+        const m = HUMBLE ? (/^\/store\/([^/?#]+)$/.exec(location.pathname) ? ["", "", "game", /^\/store\/([^/?#]+)$/.exec(location.pathname)[1]] : null) : GMG ? (/^\/games\/([^/?#]+)/.exec(location.pathname) || []).length ? ["", "", "game", /^\/games\/([^/?#]+)/.exec(location.pathname)[1]] : null : PAGE.exec(location.pathname);
         if (!m) { lastSlug = ""; lastView = null; closeModal(); unmount(); return; }
         const key = m[1] + "/" + m[2] + "/" + m[3];
         if (key === lastSlug || lastSlug === "closed:" + location.pathname || busy) return;
@@ -271,7 +299,7 @@
         go.addEventListener("click", async () => {
             if (lastView) { lastView(); return; }
             go.disabled = true; go.textContent = "Checking…";
-            await (GMG ? checkGmg : m[2] === "pick-and-mix" ? checkPick : check)(m[1], m[3]);
+            await (HUMBLE ? checkHumble : GMG ? checkGmg : m[2] === "pick-and-mix" ? checkPick : check)(m[1], m[3]);
             go.disabled = false; go.textContent = lastView ? "View results" : "Try again";
         });
         show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: m[2] === "pick-and-mix" ? "Check which games in this bundle activate in every country." : "See every country this key activates in, in one go." }), el("div", { style: "margin-top:8px" }, go));
