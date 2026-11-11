@@ -1,9 +1,9 @@
-// Region check for Fanatical game pages. Fanatical makes you pick each country in its "Check Regions" box one at a time.
+// Region check for Fanatical game and bundle pages. Fanatical makes you pick each country in its "Check Regions" box one at a time.
 // This reads the same list the page uses (one request to Fanatical's own product data) and shows every country at once.
 // Nothing is sent anywhere else.
 (() => {
     if (window.__fgRegions) return; window.__fgRegions = true;
-    const PAGE = /^\/([a-z]{2}(?:-[A-Za-z]{2})?)\/game\/([^/?#]+)/;
+    const PAGE = /^\/([a-z]{2}(?:-[A-Za-z]{2})?)\/(?:game|bundle)\/([^/?#]+)/;
 
     /** The countries Fanatical's own "Check Regions" box lists (239), with plain English names. Anything a game lists beyond these is added. */
     const CODES = "AF,AX,DZ,AS,AD,AO,AI,AQ,AG,AR,AM,AW,AU,AT,AZ,BS,BD,BB,BE,BZ,BJ,BM,BT,BO,BQ,BA,BW,BV,BR,IO,BN,BG,BF,BI,KH,CM,CA,CV,KY,CF,TD,CL,CN,CX,CC,CO,KM,CG,CD,CK,CR,CI,HR,CW,CY,CZ,DK,DJ,DM,DO,EC,EG,SV,GQ,ER,EE,ET,FK,FO,FJ,FI,FR,GF,PF,TF,GA,GM,GE,DE,GH,GI,GR,GL,GD,GP,GU,GT,GG,GN,GW,GY,HT,HM,VA,HN,HK,HU,IS,IN,ID,IR,IQ,IE,IL,IT,JM,JP,JE,JO,KZ,KI,KR,KW,KG,LA,LV,LB,LS,LR,LY,LI,LT,LU,MO,MG,MW,MY,MV,ML,MT,MH,MQ,MR,MU,YT,MX,FM,MN,ME,MS,MA,MZ,MM,NA,NR,NP,NL,AN,NC,NZ,NI,NE,NG,NU,NF,MK,MP,NO,OM,PK,PW,PS,PA,PG,PE,PH,PN,PL,PT,PR,QA,XK,RE,RO,RW,BL,SH,KN,LC,MF,PM,VC,WS,SM,ST,SA,SN,RS,SC,SL,SG,SX,SK,SI,SB,SO,ZA,GS,SS,ES,LK,SD,SR,SJ,SZ,SE,CH,TW,TJ,TZ,TH,TL,TG,TK,TO,TT,TN,TR,TM,TC,TV,UG,UA,AE,GB,US,UM,UY,UZ,VU,VE,VN,VG,VI,WF,EH,YE,ZM,ZW".split(",");
