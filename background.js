@@ -304,6 +304,7 @@ async function refreshBadge() {
     const d = await res.json(), seen = badgeSeen || { free: [], playtests: [] };
     const newFree = d.free.filter(x => !seen.free.includes(x)).length, newTests = d.playtests.filter(x => !seen.playtests.includes(x)).length, unread = Number(d.unread) || 0;
     await chrome.storage.local.set({ badgeNow: { state: "ok", free: d.free, claimable: Array.isArray(d.claimable) ? d.claimable : [], hits: Array.isArray(d.hits) ? d.hits : [], playtests: d.playtests, newFree, newTests, unread, at: Date.now() } });
+    autoClaim(Array.isArray(d.claimable) ? d.claimable : []).catch(() => {});
     const n = newFree + newTests + unread;
     await set(n ? String(Math.min(n, 99)) : "", "#4da3ff", n ? `Steam Value Checker: ${newFree} new free, ${newTests} new playtests, ${unread} unread alerts` : "FanaticalGrabber");
 }
@@ -405,3 +406,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     job.then(sendResponse).catch(err => sendResponse({ status: "error", message: err.message }));
     return true;
 });
+
+
+// Optional, off until the member switches it on in the popup: on each half-hour check, add new free-to-keep Steam games to the account.
+// Each game is tried once, so a game that can't be added doesn't get hammered, and it only works while signed in to Steam.
+async function autoClaim(list) {
+    const { autoClaim: on, autoTried = [] } = await chrome.storage.local.get(["autoClaim", "autoTried"]);
+    if (!on || !list.length) return;
+    const tried = new Set(autoTried), got = [];
+    for (const g of list.slice(0, 6)) {
+        if (tried.has(g.appid)) continue;
+        const r = await claimFree(Number(g.appid));
+        if (r.status === "not_logged_in") return; // try again next check, once signed in
+        tried.add(g.appid); if (r.status === "claimed") got.push(g.title);
+        await new Promise(r => setTimeout(r, 2000));
+    }
+    await chrome.storage.local.set({ autoTried: [...tried].slice(-300) });
+    if (got.length) { try { await chrome.action.setTitle({ title: `Added to your Steam account: ${got.join(", ")}` }); } catch { /* no toolbar */ } await chrome.storage.local.set({ autoClaimed: { at: Date.now(), titles: got } }); }
+}

@@ -50,6 +50,11 @@
             } });
             out.push(section("Free to keep on Steam", el("div", { className: "muted", textContent: b.claimable.map(g => g.title).join(", ") }), btn, note));
         }
+        // Optional automatic claiming, off until switched on.
+        const auto = el("input", { type: "checkbox" }), autoNote = el("div", { className: "note" });
+        chrome.storage.local.get(["autoClaim", "autoClaimed"]).then(v => { auto.checked = Boolean(v.autoClaim); if (v.autoClaimed?.titles?.length) say(autoNote, `Last added: ${v.autoClaimed.titles.join(", ")}`); });
+        auto.addEventListener("change", () => chrome.storage.local.set({ autoClaim: auto.checked }));
+        out.push(section("Automatic claiming", el("label", { className: "check" }, auto, " Add new free Steam games to my account automatically"), el("div", { className: "muted", textContent: "Checks every half hour while you're signed in to Steam in this browser. Free weekends are never added." }), autoNote));
         // Library sync.
         const syncNote = el("div", { className: "note" });
         const sync = el("button", { className: "btn small gray", type: "button", textContent: "Sync my Steam library", onclick: async () => {

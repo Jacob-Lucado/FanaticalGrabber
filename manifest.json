@@ -32,7 +32,8 @@
         "xlsx.full.min.js",
         "update.js",
         "content.js",
-        "deals.js"
+        "deals.js",
+        "regions.js"
       ],
       "run_at": "document_idle"
     },
