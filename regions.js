@@ -49,6 +49,23 @@
       input { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 6px 9px; font: inherit; font-size: 13px; color: #e8eefc; background: #162134; border: 1px solid #2d3f61; border-radius: 8px; }
     `;
     const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids.filter(k => k != null)); return n; };
+    // Not linked with Steam Value Checker yet: say what linking adds, with a button that opens the dashboard. Hidden for a week once dismissed.
+    const DASH = "https://steamvaluechecker.com/#/library";
+    async function linkNote(bad) {
+        try {
+            const v = await chrome.storage.local.get(["svcToken", "linkHintHidden"]);
+            if (!bad && v.svcToken) return null;
+            if (Date.now() - (v.linkHintHidden || 0) < 7 * 86400_000) return null;
+        } catch { return null; }
+        const a = el("a", { href: DASH, target: "_blank", rel: "noopener noreferrer", textContent: "Link now" });
+        a.style.cssText = "display:inline-block;margin-top:6px;padding:5px 12px;border-radius:999px;font-weight:650;font-size:12px;color:#fff;text-decoration:none;background:linear-gradient(90deg,#4da3ff,#7c6cff)";
+        const hide = el("button", { textContent: "Not now" });
+        hide.style.cssText = "margin-left:8px;background:none;border:0;color:#8da2c8;font:inherit;font-size:12px;cursor:pointer";
+        const box = el("div", { className: "muted linknote" }, el("b", { textContent: bad ? "Your link stopped working. " : "Get more out of this. " }), bad ? "Link again to switch your prices, bundle checks and wishlist back on." : "Link with Steam Value Checker (free) to see prices from every store, whether you own a game, wishlist sales and more.", el("br"), a, hide);
+        box.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid #25324a";
+        hide.addEventListener("click", async () => { try { await chrome.storage.local.set({ linkHintHidden: Date.now() }); } catch { /* ignore */ } box.remove(); });
+        return box;
+    }
     let host = null, root = null, lastSlug = "", busy = false;
     function mount() {
         if (host?.isConnected) return;
@@ -84,6 +101,7 @@
                 kids.push(inp, out);
             }
             if (Array.isArray(product.editions) && product.editions.some(e => (e.regions_included?.length || 0) + (e.regions_excluded?.length || 0) > 0)) kids.push(el("div", { className: "muted", textContent: "Some editions have their own region list. This is the main game's; check the others on the page." }));
+            const note = await linkNote(false); if (note) kids.push(note);
             show(...kids);
         } catch { show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: "Couldn't read this game's region list." })); }
         finally { busy = false; }
@@ -98,6 +116,7 @@
         const go = el("button", { className: "go", textContent: "Check all regions" });
         go.addEventListener("click", () => { go.disabled = true; go.textContent = "Checking…"; check(m[1], m[2]); });
         show(el("h4", { textContent: "Region check" }), el("div", { className: "muted", textContent: "See every country this key activates in, in one go." }), el("div", { style: "margin-top:8px" }, go));
+        linkNote(false).then(n => { if (n && lastSlug === key && root && !root.querySelector(".linknote")) root.querySelector(".card")?.append(n); });
     }
     tick(); setInterval(tick, 1200); // Fanatical is a single-page app, so the address changes without a reload
 })();

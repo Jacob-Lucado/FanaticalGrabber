@@ -50,6 +50,23 @@
     const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids.filter(k => k != null)); return n; };
     const money = (n, cur) => { try { return new Intl.NumberFormat(undefined, { style: "currency", currency: cur || "USD" }).format(n); } catch { return String(n); } };
 
+    // Not linked with Steam Value Checker yet: say what linking adds, with a button that opens the dashboard. Hidden for a week once dismissed.
+    const DASH = "https://steamvaluechecker.com/#/library";
+    async function linkNote(bad) {
+        try {
+            const v = await chrome.storage.local.get(["svcToken", "linkHintHidden"]);
+            if (!bad && v.svcToken) return null;
+            if (Date.now() - (v.linkHintHidden || 0) < 7 * 86400_000) return null;
+        } catch { return null; }
+        const a = el("a", { href: DASH, target: "_blank", rel: "noopener noreferrer", textContent: "Link now" });
+        a.style.cssText = "display:inline-block;margin-top:6px;padding:5px 12px;border-radius:999px;font-weight:650;font-size:12px;color:#fff;text-decoration:none;background:linear-gradient(90deg,#4da3ff,#7c6cff)";
+        const hide = el("button", { textContent: "Not now" });
+        hide.style.cssText = "margin-left:8px;background:none;border:0;color:#8da2c8;font:inherit;font-size:12px;cursor:pointer";
+        const box = el("div", { className: "muted linknote" }, el("b", { textContent: bad ? "Your link stopped working. " : "Get more out of this. " }), bad ? "Link again to switch your prices, bundle checks and wishlist back on." : "Link with Steam Value Checker (free) to see prices from every store, whether you own a game, wishlist sales and more.", el("br"), a, hide);
+        box.style.cssText = "margin-top:10px;padding-top:8px;border-top:1px solid #25324a";
+        hide.addEventListener("click", async () => { try { await chrome.storage.local.set({ linkHintHidden: Date.now() }); } catch { /* ignore */ } box.remove(); });
+        return box;
+    }
     function mount() {
         if (host?.isConnected) return;
         host = el("div"); host.id = "fg-stores-card";
@@ -90,7 +107,7 @@
         const price = bundlePrice();
         const r = await send({ type: "compare", titles: list });
         if (!r || r.status === "network" || r.status === "error") return;
-        if (r.status === "no_code" || r.status === "bad_code") return show(el("h4", { textContent: "Bundle check" }), el("div", { className: "muted", textContent: "Add your Steam Value Checker link code to see what this bundle is really worth." }));
+        if (r.status === "no_code" || r.status === "bad_code") { const n = await linkNote(r.status === "bad_code"); return show(el("h4", { textContent: "Bundle check" }), el("div", { className: "muted", textContent: "See what this bundle is really worth once you link with Steam Value Checker." }), n ?? el("div")); }
         const found = r.items.filter(i => i.found && i.best), fresh = found.filter(i => !i.owned), have = found.filter(i => i.owned);
         const cur = found[0]?.currency;
         const retail = fresh.reduce((a, i) => a + i.best.price, 0), wishRetail = fresh.filter(i => i.wishlisted).reduce((a, i) => a + i.best.price, 0);
@@ -116,7 +133,7 @@
         const r = await send({ type: "compare", titles: [title] });
         if (key !== lastKey) return; // the page moved on while we waited
         if (!r || r.status === "network" || r.status === "error") return;
-        if (r.status === "no_code" || r.status === "bad_code") return show(el("h4", { textContent: "Price check" }), el("div", { className: "muted", textContent: r.status === "no_code" ? "Add your Steam Value Checker link code in the extension panel on a Steam page to see prices from every store here." : "Your link code stopped working. Make a new one with /me library grabber." }));
+        if (r.status === "no_code" || r.status === "bad_code") { const n = await linkNote(r.status === "bad_code"); return show(el("h4", { textContent: "Price check" }), r.status === "no_code" ? el("div", { className: "muted", textContent: "Prices from every store, right here, once you link with Steam Value Checker." }) : null, n ?? el("div")); }
         render(title, r, []);
     }
     // These shops are single-page apps, so the address changes without a reload.

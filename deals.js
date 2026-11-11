@@ -59,7 +59,7 @@
     };
 
     let card;
-    const show = (title, lines, tone) => {
+    const show = (title, lines, tone, link = false) => {
         card?.remove();
         card = document.createElement("div");
         const sh = card.attachShadow({ mode: "open" });
@@ -67,6 +67,7 @@
         sh.innerHTML = `<style>.c{position:relative;box-sizing:border-box;width:100%;max-height:60vh;overflow:auto;font:13px/1.45 system-ui,sans-serif;background:#16181d;color:#e8e8ea;border:1px solid #333;border-left:4px solid ${color};border-radius:10px;padding:12px 26px 12px 14px;box-shadow:0 6px 24px #0008}h4{margin:0 0 6px;font-size:14px}.l{margin:3px 0}.x{position:absolute;top:4px;right:8px;background:none;border:0;color:#aaa;font-size:18px;cursor:pointer}</style><div class="c"><button class="x" aria-label="Close">×</button><h4></h4></div>`;
         sh.querySelector("h4").textContent = title;
         for (const l of lines) { const d = document.createElement("div"); d.className = "l"; d.textContent = l; sh.querySelector(".c").append(d); }
+        if (link) { const a = document.createElement("a"); a.href = "https://steamvaluechecker.com/#/library"; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = "Link now"; a.style.cssText = "display:inline-block;margin-top:8px;padding:5px 12px;border-radius:999px;font-weight:650;font-size:12px;color:#fff;text-decoration:none;background:linear-gradient(90deg,#4da3ff,#7c6cff)"; sh.querySelector(".c").append(a); }
         sh.querySelector(".x").addEventListener("click", () => card.remove());
         card.style.cssText = "pointer-events:auto;width:100%";
         (window.__fgStack ? window.__fgStack() : document.documentElement).append(card);
@@ -91,7 +92,7 @@
         if (have.length) lines.push(`You already own ${have.length}: ${have.slice(0, 4).map(x => x.t).join(", ")}${have.length > 4 ? " and more" : ""}.`);
         if (!fresh.length) { show(isCart ? "Cart check" : "Bundle check", [...lines, "You own everything here, so it is not worth buying."], "bad"); return; }
         const pr = await send({ type: "prices-for", appids: fresh.map(x => x.id), cc });
-        if (pr?.status === "no_code") { show("Price check", ["Link with the Steam Value Checker bot to compare with Steam prices: sign in with Discord at steamvaluechecker.com, open Library and press Connect the extension."], ""); return; }
+        if (pr?.status === "no_code" || pr?.status === "bad_code") { show("Price check", [pr.status === "bad_code" ? "Your link with Steam Value Checker stopped working. Link again to compare with Steam prices." : "Link with Steam Value Checker (free) to compare this with Steam prices and see which games you already own."], "", true); return; }
         if (pr?.status !== "ok") { if (isCart) show("Cart check", ["Could not get Steam prices right now."], ""); return; }
         const priced = pr.items.filter(i => i.steam > 0);
         if (!priced.length) { if (isCart) show("Cart check", [...lines, "Steam shows no price for these games, so there is nothing to compare with."], ""); return; }
