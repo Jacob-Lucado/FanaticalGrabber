@@ -281,11 +281,50 @@
         codeBox.value = ""; codeBox.placeholder = v ? "Saved. Reload a Steam game page to see prices." : "Removed.";
     });
 
+    // Free games, auto-claim and library sync, in the panel so they are always one click away on Steam.
+    const freeBox = el("div", { className: "banner" });
+    async function loadFree() {
+        const b = await send({ type: "badge-status" });
+        const { autoClaim } = await chrome.storage.local.get("autoClaim");
+        freeBox.replaceChildren();
+        if (!b || b.state === "no_code" || b.state === "bad_code") {
+            const go = el("button", { className: "b go", type: "button", textContent: "Link now" });
+            go.addEventListener("click", () => window.open("https://steamvaluechecker.com/#/connect", "_blank", "noopener,noreferrer"));
+            freeBox.append(el("b", { textContent: "Free games and auto-claim" }), el("div", { textContent: "Link with Steam Value Checker to add new free games to your account and sync your library." }), el("div", { className: "row" }, go));
+            return;
+        }
+        const list = Array.isArray(b.claimable) ? b.claimable : [];
+        const note = el("div", { className: "line msg", hidden: true });
+        const say = (t, ok) => { note.hidden = false; note.textContent = t; note.style.color = ok ? "var(--good)" : "var(--warn)"; };
+        const rows = [el("b", { textContent: "Free games and auto-claim" }), el("div", { textContent: list.length ? "Free to keep right now: " + list.map(g => g.title).join(", ") : "No new free games to add right now." })];
+        if (list.length) {
+            const btn = el("button", { className: "b go", type: "button", textContent: `Add ${list.length} free game${list.length === 1 ? "" : "s"} to my account` });
+            btn.addEventListener("click", async () => {
+                btn.disabled = true; let got = 0, had = 0, failed = 0, out = false;
+                for (const g of list) { say(`Adding ${g.title}\u2026`, true); const r = await send({ type: "claim-free", appid: g.appid }); if (r?.status === "claimed") got++; else if (r?.status === "owned") had++; else if (r?.status === "not_logged_in") { out = true; break; } else failed++; }
+                say(out ? "Sign in to Steam in this browser first." : `Added ${got}${had ? `, ${had} already yours` : ""}${failed ? `, ${failed} didn't work (open its Steam page to claim it)` : ""}.`, !out && (!failed || got > 0));
+                btn.disabled = false;
+            });
+            rows.push(el("div", { className: "row" }, btn));
+        }
+        const auto = el("input", { type: "checkbox" }); auto.checked = Boolean(autoClaim);
+        auto.addEventListener("change", () => chrome.storage.local.set({ autoClaim: auto.checked }));
+        const sync = el("button", { className: "b", type: "button", textContent: "Sync my Steam library" });
+        sync.addEventListener("click", async () => {
+            sync.disabled = true; say("Syncing\u2026", true);
+            const r = await send({ type: "sync-library" });
+            say(r?.status === "ok" ? `Done. ${r.added} new game${r.added === 1 ? "" : "s"} added (${r.total} on your account).` : r?.status === "not_logged_in" ? "Sign in to Steam in this browser first." : "That didn't work. Try again in a minute.", r?.status === "ok");
+            sync.disabled = false;
+        });
+        rows.push(el("label", { className: "chk" }, auto, "Add new free Steam games to my account automatically (checked every half hour, free weekends are skipped)"), el("div", { className: "row" }, sync), note);
+        freeBox.append(...rows);
+    }
+
     const closeBtn = el("button", { className: "x", textContent: "×", title: "Close", "aria-label": "Close" });
     panel.append(
         el("header", {}, el("div", {}, el("b", { textContent: "Batch Redeem" }), el("small", { textContent: "v" + VERSION })), onRegister ? "" : closeBtn),
         el("div", { className: "body" },
-            banner,
+            banner, freeBox,
             el("div", { className: "banner", textContent: "Make sure you are logged into the Steam account you want the games on. Keys are redeemed one at a time, about 3 seconds apart, using your signed-in session." }),
             box, file,
             el("div", { className: "row" }, goBtn, stopBtn, fileBtn, queueBtn, count),
@@ -298,11 +337,11 @@
             el("div", { className: "foot", textContent: "Keys never leave your browser except to Steam. Already-handled keys are remembered and skipped. © 2026 Jacob Lucado" })));
 
     const tab = el("button", { className: "tab", innerHTML: "" });
-    tab.append(el("span", { textContent: "Batch Redeem" }));
+    tab.append(el("span", { textContent: "Redeem & free games" }));
     tab.title = "Steam batch redeem";
     window.fgUpdateNotice?.(panel.querySelector(".body"));
     let placeSteam = null;
-    const open = on => { panel.classList.toggle("open", on); tab.hidden = on; if (on) checkLogin(); loadQueue(); if (placeSteam) placeSteam.park(!on); };
+    const open = on => { panel.classList.toggle("open", on); tab.hidden = on; if (on) { checkLogin(); loadFree(); } loadQueue(); if (placeSteam) placeSteam.park(!on); };
     tab.addEventListener("click", () => open(true));
     if (!onRegister) placeSteam = makeMovable([panel, tab], [tab, panel.querySelector("header")], "fgPosSteam", true);
     closeBtn.addEventListener("click", e => { e.stopPropagation(); open(false); });
@@ -488,7 +527,7 @@
         tab.hidden = true;
         host.style.display = "block"; host.style.margin = "16px 0";
         anchor.insertAdjacentElement(anchor === document.body ? "afterbegin" : "afterend", host);
-        checkLogin(); loadQueue();
+        checkLogin(); loadFree(); loadQueue();
     } else {
         document.body.append(host);
         loadQueue();
