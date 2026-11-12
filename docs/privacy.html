@@ -114,49 +114,61 @@ footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 
 <main class="wrap policy">
   <h1>Privacy Policy</h1>
-  <p>Last updated: October 30, 2026</p>
-  <p>FanaticalGrabber is a browser extension that helps you reveal, export and redeem game keys from your own Fanatical account.</p>
+  <p>Last updated: November 12, 2026</p>
+  <p>FanaticalGrabber is a browser extension that helps you reveal, export and redeem game keys from your own Fanatical account. Linked with the free Steam Value Checker bot, it also compares prices and shows what you own. This page lists everything it reads, keeps and sends.</p>
 
-  <h2>Data the extension accesses</h2>
+  <h2>What works without linking anything</h2>
   <ul>
-    <li>Game titles and keys shown on fanatical.com pages you open.</li>
-    <li>Your Steam session cookie (store.steampowered.com), only when you click "Redeem on Steam".</li>
-    <li>A local list of keys you've already redeemed, with status and timestamp.</li>
-    <li>If you press "Send what I paid" on your Steam purchase history page: the game titles and prices listed there. Only titles and prices are sent, to your own Steam Value Checker library.</li>
-    <li>If you press "Record retail prices for my keys" on your Steam licenses page: the titles of your key activations. Only titles are sent.</li>
-    <li>If you use "Send to Steam Value Checker": a link code you paste in once, or that the Steam Value Checker dashboard hands to the extension when you press "Connect the extension". It is kept in your browser.</li>
-    <li>Revealed Steam-format keys (with the game title and time) are remembered in your browser's local storage until redeemed, so the dashboard's Batch redeem page can list them. They are passed from the dashboard page to the extension and on to Steam. They are never sent to the Steam Value Checker server.</li>
-    <li>About every six hours the extension asks the Steam Value Checker site which version is newest (no sign-in, nothing about you is sent) so it can remind you to update.</li>
-    <li>On Fanatical bundle and cart pages and on the Steam cart and bundle pages: the game titles listed there are looked up on Steam, and the Steam game ids are sent to your Steam Value Checker account (with your link code, if you have one) to compare prices and to check which games you already own. No keys or payment details are read.</li>
+    <li>Revealing, exporting and copying keys on fanatical.com, and on Humble's keys page (beta). Exports are made in your browser.</li>
+    <li>Redeeming keys on Steam. Keys go from your browser to Steam (store.steampowered.com) and nowhere else, and only when you press Redeem.</li>
+    <li>The region check on Fanatical, which reads the same region list Fanatical's own page uses.</li>
+    <li>About every six hours the extension asks steamvaluechecker.com which version is newest, so it can remind you to update. No sign-in, and nothing about you is sent.</li>
   </ul>
 
-  <h2>How it is used</h2>
+  <h2>What is kept in your browser</h2>
   <ul>
-    <li>Keys and titles are used only to create the exports you request (TXT, CSV, JSON, Markdown, HTML, XLSX, clipboard) and to redeem keys on your own Steam account when you click Redeem.</li>
-    <li>The Steam session cookie is used only to send your redeem request to Steam on your behalf.</li>
+    <li>Keys you have revealed, with the game title, the order they came from and the time, so one export can cover every order you have opened and the batch redeem can list what is still unused. Clear this list any time on the options page.</li>
+    <li>Which keys were already redeemed or exported, so they are not sent to Steam twice or exported twice.</li>
+    <li>Your options (file names, delays, extra columns), where you dragged the panels, and your link code if you linked the bot.</li>
+    <li>Removing the extension deletes all of it. None of it is sent to the developer.</li>
   </ul>
 
-  <h2>Storage and sharing</h2>
+  <h2>What is sent to Steam Value Checker, once you link it</h2>
+  <p>Linking is optional. You link by pressing "Connect the extension" on the Steam Value Checker dashboard or by pasting a link code. From then on the extension sends the items below to steamvaluechecker.com, the developer's own service, always with your link code so they reach your own account. <b>Keys are never sent.</b> Turn the link off any time with <code>/me library grabber</code> in Discord or on the dashboard.</p>
   <ul>
-    <li>Exports are generated locally in your browser.</li>
-    <li>The redeemed-key list is stored locally in your browser (chrome.storage). Removing the extension deletes it.</li>
-    <li>Keys are sent to Steam (store.steampowered.com) only when you click Redeem.</li>
-    <li>"Send to Steam Value Checker" is optional and only runs when you click it. It sends game titles (never keys) with your link code to steamvaluechecker.com, the developer's own bot, to add them to your library there. You can turn the link off any time with /library grabber in Discord.</li>
-    <li>Apart from that optional send, no data is sent to the developer or to any other third party. The extension has no servers, analytics or advertising, and does not sell or transfer user data.</li>
+    <li><b>Every half hour:</b> a check for new free games, new playtests and unread alerts, for the number on the toolbar icon. Only the link code is sent.</li>
+    <li><b>On a Steam game page:</b> the game's Steam number, to show your best price, the all-time low, whether you own or wishlisted it, open playtests, and how many members of your server own or play it.</li>
+    <li><b>On a Humble, GOG, Epic or Green Man Gaming game page:</b> the game's title, to show prices in other stores.</li>
+    <li><b>On Fanatical and Humble bundle pages, the Fanatical cart and the Steam cart and bundle pages:</b> the titles listed there are looked up on Steam, and the Steam game numbers are sent to compare prices and to check which games you own. No payment details are read.</li>
+    <li><b>When you press the button for it:</b> "Send to Steam Value Checker" (game titles and what you paid for the order), "Send what I paid" on your Steam purchase history (titles and prices), "Record retail prices" on your Steam licenses (titles), "Sync my Steam library" (the Steam numbers of the games on your account), "Add to wishlist" and "Spotlight on stream" (one game), and the spare-copy board (the name of a game you offer or claim).</li>
+    <li><b>Batch redeem on the dashboard:</b> the dashboard page hands keys to the extension, which sends them to Steam. The first time, the extension asks you itself before it lets that page list your saved keys, and it only answers right after you click. The keys never reach the Steam Value Checker server.</li>
+  </ul>
+
+  <h2>What is done on Steam for you</h2>
+  <ul>
+    <li>Your Steam session cookie is used to redeem keys, to read which games your account owns, and to add free-to-keep games when you press that button.</li>
+    <li><b>Automatic claiming</b> is off unless you switch it on in the toolbar popup. While on, it adds new free-to-keep Steam games to your account every half hour, as long as you are signed in to Steam in this browser.</li>
+  </ul>
+
+  <h2>Sharing</h2>
+  <ul>
+    <li>Nothing is sold, and nothing goes to advertisers or analytics services. The extension has none.</li>
+    <li>The only places data goes are Steam (your own account), Fanatical and Humble (the pages you already have open) and, if you linked it, Steam Value Checker. Its own privacy policy covers what it keeps: <a href="https://steamvaluechecker.com/privacy.pdf" rel="noopener noreferrer" target="_blank">steamvaluechecker.com/privacy.pdf</a>.</li>
   </ul>
 
   <h2>This website</h2>
   <ul>
-    <li>The extension itself collects nothing. This web page shows a visitor counter in its footer. It keeps two totals (visitors and page views) on the developer's Steam Value Checker server. It sets no cookies and stores no IP addresses, names or per-visit records; your browser only remembers that it has already been counted. The "viewing now" number uses a random ID created for your tab; the server keeps it in memory for about a minute after your last ping and then forgets it.</li>
+    <li>This web page shows a visitor counter in its footer. It keeps two totals (visitors and page views) on the developer's Steam Value Checker server. It sets no cookies and stores no IP addresses, names or per-visit records; your browser only remembers that it has already been counted. The "viewing now" number uses a random ID created for your tab; the server keeps it in memory for about a minute after your last ping and then forgets it.</li>
   </ul>
 
   <h2>Permissions</h2>
   <ul>
     <li><code>clipboardWrite</code>: copy keys when you choose "Copy to clipboard".</li>
-    <li><code>storage</code>: remember which keys were already redeemed, and your optional link code.</li>
-    <li><code>steamvaluechecker.com</code> access: the optional "Send to Steam Value Checker" button.</li>
-    <li><code>cookies</code> and <code>store.steampowered.com</code> access: redeem keys on your logged-in Steam account.</li>
-    <li><code>fanatical.com</code> access: read and reveal keys on pages you open.</li>
+    <li><code>storage</code>: everything listed under "What is kept in your browser".</li>
+    <li><code>cookies</code> and <code>store.steampowered.com</code> access: redeem keys and read your owned games on your signed-in Steam account.</li>
+    <li><code>alarms</code>: the half-hourly check for the toolbar number, and automatic claiming if you switched it on.</li>
+    <li><code>steamvaluechecker.com</code> access: everything listed under "What is sent to Steam Value Checker".</li>
+    <li><code>fanatical.com</code>, <code>humblebundle.com</code>, <code>gog.com</code>, <code>store.epicgames.com</code> and <code>greenmangaming.com</code> pages: show the panels and price cards on the pages you open there.</li>
   </ul>
 
   <h2>Contact</h2>

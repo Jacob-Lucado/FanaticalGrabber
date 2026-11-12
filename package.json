@@ -1,0 +1,12 @@
+{
+  "name": "fanaticalgrabber",
+  "private": true,
+  "description": "Development tools for the FanaticalGrabber extension. Nothing here ships in the extension itself.",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\"",
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}

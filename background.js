@@ -432,3 +432,9 @@ async function autoClaim(list) {
     await chrome.storage.local.set({ autoTried: [...tried].slice(-300) });
     if (got.length) { try { await chrome.action.setTitle({ title: `Added to your Steam account: ${got.join(", ")}` }); } catch { /* no toolbar */ } await chrome.storage.local.set({ autoClaimed: { at: Date.now(), titles: got } }); }
 }
+
+// The panels' Options link. Content scripts can't open the options page themselves.
+chrome.runtime.onMessage.addListener((msg, sender) => {
+    if (sender.id !== chrome.runtime.id || msg?.type !== "open-options") return;
+    chrome.runtime.openOptionsPage().catch(() => {});
+});
