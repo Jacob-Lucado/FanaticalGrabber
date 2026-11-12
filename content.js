@@ -1,12 +1,20 @@
 (() => {
     "use strict";
 
+    const L = window.FGLib;
     const SEL_KEY_INPUT = 'input[aria-label="reveal-key"]';
-    const REVEAL_TEXT = "reveal key";
     const REVEAL_TIMEOUT_MS = 15000;
-    const CLICK_DELAY_MS = 150;
 
     let busy = false;
+    // Settings from the options page (delays, file names, extra columns). Kept current while the page is open.
+    let opts = L.cleanOptions();
+    try {
+        chrome.storage.local.get("opts").then(v => { opts = L.cleanOptions(v.opts); }).catch(() => {});
+        chrome.storage.onChanged.addListener((c, area) => { if (area === "local" && c.opts) opts = L.cleanOptions(c.opts.newValue); });
+    } catch { /* the defaults are fine */ }
+    // The panel lives in its own shadow tree so the site's styles and the panel's can't touch each other.
+    let root = null;
+    const ui = id => root?.getElementById(id) ?? null;
 
     // ---------- helpers ----------
     const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -14,9 +22,8 @@
     const version = () => chrome.runtime.getManifest().version;
 
     function findRevealButtons() {
-        return [...document.querySelectorAll("button")].filter(
-            btn => btn.textContent.trim().toLowerCase() === REVEAL_TEXT
-        );
+        // Matched by the button's text in every language Fanatical offers, plus whatever was typed into the options page.
+        return [...document.querySelectorAll("button")].filter(btn => L.isRevealLabel(btn.textContent, opts.revealLabel));
     }
 
     function getVisibleKeys() {
@@ -53,12 +60,14 @@
         return parseAmount(amount);
     }
 
-    function parseAmount(text) {
-        const m = String(text ?? "").match(/[$€£]\s?(\d[\d.,]*)/);
-        if (!m) return null;
-        const raw = /,\d{1,2}$/.test(m[1]) ? m[1].replace(/\./g, "").replace(",", ".") : m[1].replace(/,/g, "");
-        const n = Number(raw);
-        return Number.isFinite(n) && n >= 0 ? n : null;
+    const parseAmount = L.parseAmount;
+
+    // The order number and date, for the optional extra columns. The number is in the address; the date is one of the header cells.
+    function orderInfo() {
+        const cells = [...document.querySelectorAll(".column-cell")].map(el => el.textContent.trim()).filter(Boolean);
+        const order = /\/orders?\/([A-Za-z0-9-]{4,})/.exec(location.pathname)?.[1] ?? "";
+        const date = cells.find(t => t.length <= 40 && /^(\d{1,2}[./-]\d{1,2}[./-]\d{2,4}|\d{4}-\d{2}-\d{2}|[A-Za-zÀ-ÿ]{3,}\.?\s+\d{1,2},?\s+\d{4}|\d{1,2}\.?\s+[A-Za-zÀ-ÿ]{3,}\.?,?\s+\d{4})\b/.test(t)) ?? "";
+        return { order, date };
     }
 
     // Every revealed Steam-format key is remembered locally (title and time), so the dashboard's key vault can list what is still unredeemed.
@@ -74,6 +83,15 @@
             }
             if (changed) await chrome.storage.local.set({ vault });
         } catch { /* the vault is a convenience */ }
+    }
+
+    // Every key revealed on any order page is also kept in a local list, so one export can cover every order you've opened.
+    async function saveToLedger(rows) {
+        try {
+            if (!rows.length) return;
+            const { ledger = {} } = await chrome.storage.local.get("ledger");
+            if (L.mergeLedger(ledger, rows, { store: "fanatical" })) await chrome.storage.local.set({ ledger });
+        } catch { /* a convenience, like the vault */ }
     }
 
     function collectKeys() {
@@ -94,15 +112,18 @@
             const each = Math.round(total / rows.length * 100) / 100;
             rows.forEach(r => { r.paid = each; });
         }
+        const { order, date } = orderInfo();
+        rows.forEach(r => { r.order = order; r.date = date; });
+        saveToLedger(rows);
         return rows;
     }
 
     function setStatus(text, count = null) {
-        const status = document.getElementById("fg-status");
+        const status = ui("fg-status");
         if (!status) return;
         status.style.display = "block";
-        document.getElementById("fg-status-text").textContent = `Status: ${text}`;
-        document.getElementById("fg-keys-count").textContent =
+        ui("fg-status-text").textContent = `Status: ${text}`;
+        ui("fg-keys-count").textContent =
             `Keys Revealed: ${count ?? getVisibleKeys().length}`;
     }
 
@@ -124,7 +145,7 @@
 
         for (const btn of buttons) {
             btn.click();
-            await sleep(CLICK_DELAY_MS);
+            await sleep(opts.revealDelayMs);
         }
         await waitFor(() => getVisibleKeys().length >= before + buttons.length, REVEAL_TIMEOUT_MS);
         return buttons.length;
@@ -146,7 +167,7 @@
     }
 
     function setBusyUI(on) {
-        document.querySelectorAll("#fg-body button:not(#fg-stop)").forEach(b => (b.disabled = on));
+        root?.querySelectorAll("#fg-body button:not(#fg-stop)").forEach(b => (b.disabled = on));
     }
 
     function download(blob, filename) {
@@ -160,76 +181,37 @@
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    // ---------- formatters ----------
     const csvCell = v => `"${String(v).replace(/"/g, '""')}"`;
-    const mdCell = v => String(v).replace(/\|/g, "\\|");
-    const htmlEsc = v =>
-        String(v).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const FORMATS = L.FORMATS; // the file formats and their builders live in lib.js
+    const STEAM_KEY_RE = L.STEAM_KEY_RE; // Steam keys are 5-5-5; skips other platforms
 
-    // Each exporter: build(rows) -> string. XLSX is handled separately (needs the library).
-    // To add a format, just add an entry here.
-    const FORMATS = [
-        {
-            id: "txt", icon: "", label: "Text (.txt)", ext: "txt", mime: "text/plain",
-            build: rows => [
-                "FanaticalGrabber",
-                "© 2026 Jacob Lucado",
-                `Version: ${version()}`,
-                "",
-                "Fanatical Key Export Report",
-                "",
-                `Export Date: ${new Date().toLocaleString()}`,
-                "",
-                "========================================",
-                "",
-                ...rows.map(r => `${r.title} | ${r.key}`),
-                "",
-                "========================================",
-                "",
-                `Games Exported: ${rows.length}`,
-                "",
-                "Created By: Jacob Lucado",
-                "Follow: https://x.com/twit_user69",
-                ""
-            ].join("\n")
-        },
-        {
-            id: "csv", icon: "", label: "CSV (.csv)", ext: "csv", mime: "text/csv",
-            // BOM so Excel reads UTF-8 titles correctly
-            build: rows => "\uFEFF" + [rows.some(r => r.paid != null) ? "Game,Key,Paid" : "Game,Key", ...rows.map(r => `${csvCell(r.title)},${csvCell(r.key)}` + (rows.some(x => x.paid != null) ? `,${r.paid ?? ""}` : ""))].join("\r\n") + "\r\n"
-        },
-        {
-            id: "json", icon: "", label: "JSON (.json)", ext: "json", mime: "application/json",
-            build: rows => JSON.stringify(
-                { exportedAt: new Date().toISOString(), count: rows.length, keys: rows.map(r => ({ game: r.title, key: r.key, ...(r.paid != null ? { paid: r.paid } : {}) })) },
-                null, 2
-            )
-        },
-        {
-            id: "md", icon: "", label: "Markdown (.md)", ext: "md", mime: "text/markdown",
-            build: rows => [
-                "# Fanatical Keys",
-                "",
-                `Exported ${new Date().toLocaleString()} — ${rows.length} keys`,
-                "",
-                "| Game | Key |",
-                "| --- | --- |",
-                ...rows.map(r => `| ${mdCell(r.title)} | \`${r.key}\` |`),
-                ""
-            ].join("\n")
-        },
-        {
-            id: "html", icon: "", label: "HTML page (.html)", ext: "html", mime: "text/html",
-            build: rows => `<!doctype html>
-<html><head><meta charset="utf-8"><title>Fanatical Keys</title>
-<style>body{font-family:Segoe UI,sans-serif;margin:2rem}table{border-collapse:collapse}
-td,th{border:1px solid #ccc;padding:6px 12px;text-align:left}code{font-size:1.05em}</style></head>
-<body><h1>Fanatical Keys</h1><p>Exported ${htmlEsc(new Date().toLocaleString())} — ${rows.length} keys</p>
-<table><tr><th>Game</th><th>Key</th></tr>
-${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</code></td></tr>`).join("\n")}
-</table></body></html>`
+    // ---------- choose which games to export ----------
+    const unpicked = new Set();
+    const rowId = r => `${r.title}|${r.key}`;
+    function drawPicks() {
+        const box = ui("fg-picklist"), btn = ui("fg-pick");
+        if (!box || !btn) return;
+        const rows = collectKeys();
+        const on = rows.filter(r => !unpicked.has(rowId(r))).length;
+        btn.textContent = (rows.length && on < rows.length ? `Choose games (${on} of ${rows.length})` : "Choose games") + (box.classList.contains("open") ? " ▴" : " ▾");
+        if (!box.classList.contains("open")) return;
+        box.replaceChildren();
+        if (!rows.length) { const p = document.createElement("div"); p.className = "fg-hint"; p.textContent = "Reveal your keys first, then pick the games to export."; return void box.append(p); }
+        const bar = document.createElement("div"); bar.className = "fg-pickbar";
+        for (const [label, pick] of [["All", true], ["None", false]]) {
+            const b = document.createElement("button"); b.type = "button"; b.className = "fg-link"; b.textContent = label;
+            b.addEventListener("click", () => { for (const r of rows) { if (pick) unpicked.delete(rowId(r)); else unpicked.add(rowId(r)); } drawPicks(); });
+            bar.append(b);
         }
-    ];
+        box.append(bar);
+        for (const r of rows) {
+            const row = document.createElement("label"); row.className = "fg-pickrow";
+            const c = document.createElement("input"); c.type = "checkbox"; c.checked = !unpicked.has(rowId(r));
+            c.addEventListener("change", () => { if (c.checked) unpicked.delete(rowId(r)); else unpicked.add(rowId(r)); drawPicks(); });
+            const t = document.createElement("span"); t.textContent = r.title;
+            row.append(c, t); box.append(row);
+        }
+    }
 
     // ---------- send to Steam Value Checker ----------
     async function sendToChecker(rows) {
@@ -254,6 +236,11 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
             await revealKeys();
             let rows = collectKeys();
             if (!rows.length) return setStatus("No keys found", 0);
+            // Only the games ticked under "Choose games" (everything, until something is unticked).
+            const found = rows.length;
+            rows = rows.filter(r => !unpicked.has(rowId(r)));
+            drawPicks();
+            if (!rows.length) return setStatus("No games picked. Tick some under Choose games", found);
 
             if (formatId === "svc") return sendToChecker(rows);
             if (formatId === "queue") {
@@ -269,6 +256,12 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
 
             // "Only new keys": leave out keys that an earlier export already wrote out, so a second export is just what's new.
             const fileLike = formatId !== "svc" && formatId !== "queue";
+            // "Every order I've opened": add the keys revealed on other order pages, which the extension remembered in this browser.
+            if (ui("fg-allorders-box")?.checked) {
+                const { ledger = {} } = await chrome.storage.local.get("ledger");
+                const here = new Set(rows.map(r => r.key.trim()));
+                rows = [...rows, ...L.ledgerRows(ledger).filter(r => !here.has(r.key))];
+            }
             const { onlyNew = false, exportedKeys = {} } = await chrome.storage.local.get(["onlyNew", "exportedKeys"]);
             let rows2 = rows;
             if (onlyNew) {
@@ -284,23 +277,16 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
             }
             setStatus(`Exporting ${formatId.toUpperCase()}...`, rows.length);
 
+            const name = L.fileName(opts.fileName, { order: orderInfo().order, count: rows.length });
             if (formatId === "xlsx") {
-                if (typeof XLSX === "undefined") return setStatus("xlsx.full.min.js not loaded");
-                const exportDate = new Date().toLocaleString();
-                const sheet = XLSX.utils.json_to_sheet(
-                    rows.map(r => ({ Game: r.title, Key: r.key, ...(r.paid != null ? { Paid: r.paid } : {}), ExportDate: exportDate }))
-                );
-                sheet["!cols"] = [{ wch: 50 }, { wch: 30 }, { wch: 25 }];
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, sheet, "Keys");
-                XLSX.writeFile(wb, `FanaticalGrabber_${today()}.xlsx`);
+                // Written by the small workbook writer in lib.js, so no spreadsheet library has to load on the page.
+                download(new Blob([L.xlsxExport(rows, { extraColumns: opts.extraColumns })], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `${name}.xlsx`);
                 return setStatus("Exported XLSX", rows.length);
             }
 
             if (formatId === "clipboard") {
-                const text = rows.map(r => `${r.title} | ${r.key}`).join("\n");
                 try {
-                    await navigator.clipboard.writeText(text);
+                    await navigator.clipboard.writeText(L.clipboardText(rows, opts.clipboardFormat));
                     setStatus("Copied to clipboard", rows.length);
                 } catch {
                     setStatus("Clipboard blocked by browser", rows.length);
@@ -310,15 +296,12 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
 
             const fmt = FORMATS.find(f => f.id === formatId);
             if (!fmt) return setStatus(`Unknown format: ${formatId}`);
-            download(new Blob([fmt.build(rows)], { type: `${fmt.mime};charset=utf-8` }),
-                `FanaticalGrabber_${today()}.${fmt.ext}`);
+            download(new Blob([L.buildExport(fmt.id, rows, { version: version(), store: "Fanatical", extraColumns: opts.extraColumns })], { type: `${fmt.mime};charset=utf-8` }), `${name}.${fmt.ext}`);
             setStatus(`Exported ${fmt.ext.toUpperCase()}`, rows.length);
         });
     }
 
     // ---------- Steam redeem ----------
-    const STEAM_KEY_RE = /^[A-Z0-9]{5}(-[A-Z0-9]{5}){2}$/i; // Steam keys are 5-5-5; skips other platforms
-    const REDEEM_DELAY_MS = 3000;
     const FINAL_STATUSES = ["redeemed", "owned", "used", "invalid"]; // never retried
     let stopRequested = false;
 
@@ -328,7 +311,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
     }
 
     function showStop(on) {
-        const btn = document.getElementById("fg-stop");
+        const btn = ui("fg-stop");
         if (btn) btn.style.display = on ? "block" : "none";
     }
 
@@ -390,7 +373,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
                     abortMsg = "Steam rate limit hit - wait about an hour, then retry";
                     break;
                 }
-                if (i < todo.length - 1) await sleep(REDEEM_DELAY_MS);
+                if (i < todo.length - 1) await sleep(opts.redeemDelayMs);
             }
 
             showStop(false);
@@ -416,6 +399,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
         return run("Reveal", async () => {
             const clicked = await revealKeys();
             setStatus(clicked ? "Ready" : "No keys to reveal");
+            drawPicks();
         });
     }
 
@@ -463,7 +447,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
 
     // ---------- UI ----------
     const CSS = `
-        #fg-panel { position: fixed; bottom: 20px; right: 20px; width: 260px; max-width: calc(100vw - 40px); box-sizing: border-box; background: #1e1e1e; color: #fff;
+        :host { all: initial; position: fixed; bottom: 20px; right: 20px; width: 260px; max-width: calc(100vw - 40px); box-sizing: border-box; background: #1e1e1e; color: #fff;
             border-radius: 12px; overflow: hidden; z-index: 2147483647; font-family: "Segoe UI", sans-serif;
             box-shadow: 0 5px 20px rgba(0,0,0,.4); }
         #fg-header { background: #ff9800; color: #000; padding: 12px; font-size: 16px; font-weight: bold;
@@ -500,6 +484,16 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
             padding: 10px; margin-bottom: 10px; border-radius: 6px; font-weight: bold; }
         #fg-twitter:hover { opacity: .9; }
         #fg-footer { text-align: center; color: #bbb; font-size: 11px; }
+        #fg-allorders { display: flex; gap: 8px; align-items: center; padding: 9px 12px; font-size: 12.5px; color: #ddd; cursor: pointer; }
+        #fg-allorders input, .fg-pickrow input { width: auto; margin: 0; }
+        #fg-pick { background: #333; color: #fff; }
+        #fg-picklist { display: none; margin: -2px 0 8px; background: #2a2a2a; border-radius: 6px; padding: 6px 8px; max-height: 190px; overflow-y: auto; font-size: 12.5px; }
+        #fg-picklist.open { display: block; }
+        .fg-pickrow { display: flex; gap: 8px; align-items: flex-start; padding: 4px 2px; color: #eee; cursor: pointer; }
+        .fg-pickbar { display: flex; gap: 10px; padding: 2px 2px 6px; border-bottom: 1px solid #3a3a3a; margin-bottom: 4px; }
+        #fg-body button.fg-link { width: auto; padding: 0; margin: 0; background: none; color: #ffb74d; font-weight: 600; text-decoration: underline; }
+        .fg-hint { color: #bbb; padding: 4px 2px; }
+        #fg-options { display: block; width: 100%; background: none; color: #bbb; font-size: 11.5px; text-decoration: underline; padding: 2px; margin: 0 0 8px; font-weight: 400; }
     `;
 
     function menuItem(id, icon, label) {
@@ -510,13 +504,12 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
         if (document.getElementById("fg-panel")) return;
         if (!findRevealButtons().length && !document.querySelector(SEL_KEY_INPUT)) return;
 
+        const host = document.createElement("div");
+        host.id = "fg-panel";
+        root = host.attachShadow({ mode: "open" });
         const style = document.createElement("style");
-        style.id = "fg-style";
         style.textContent = CSS;
-        document.head.appendChild(style);
-
         const panel = document.createElement("div");
-        panel.id = "fg-panel";
         panel.innerHTML = `
             <div id="fg-header" class="collapsed"><span>FanaticalGrabber</span></div>
             <div id="fg-body">
@@ -538,8 +531,12 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
                     ${menuItem("svc", "", "Send to Steam Value Checker")}
                     <div class="fg-sep"></div>
                     <label id="fg-onlynew" title="Leave out keys that an earlier export already saved"><input type="checkbox" id="fg-onlynew-box"> Only keys I haven't exported</label>
+                    <label id="fg-allorders" title="File and clipboard exports also include the keys you revealed on other order pages. They are remembered in this browser only"><input type="checkbox" id="fg-allorders-box"> Include every order I've opened</label>
                     <button class="fg-item" id="fg-forget" type="button">Forget what I've exported</button>
                 </div>
+
+                <button id="fg-pick" type="button" aria-expanded="false" title="Export only some of the games on this page">Choose games ▾</button>
+                <div id="fg-picklist"></div>
 
                 <button id="fg-reveal">Reveal All</button>
                 <button id="fg-redeem" title="Beta: may fail if Steam changes or rate-limits you">Redeem on Steam (Beta)</button>
@@ -548,19 +545,21 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
                 <a id="fg-twitter" href="https://x.com/twit_user69" target="_blank" rel="noopener noreferrer">
                     Follow Jacob Lucado
                 </a>
+                <button id="fg-options" type="button">Options</button>
                 <div id="fg-footer">© 2026 Jacob Lucado<br>FanaticalGrabber v${version()}</div>
             </div>
         `;
-        document.body.appendChild(panel);
+        root.append(style, ...panel.childNodes);
+        document.body.appendChild(host);
 
-        const header = panel.querySelector("#fg-header");
-        const body = panel.querySelector("#fg-body");
+        const header = root.querySelector("#fg-header");
+        const body = root.querySelector("#fg-body");
         window.fgUpdateNotice?.(body);
-        const exportBtn = panel.querySelector("#fg-export");
-        const menu = panel.querySelector("#fg-menu");
+        const exportBtn = root.querySelector("#fg-export");
+        const menu = root.querySelector("#fg-menu");
 
-        const sub = panel.querySelector("#fg-sub");
-        const filesBtn = panel.querySelector("#fg-files");
+        const sub = root.querySelector("#fg-sub");
+        const filesBtn = root.querySelector("#fg-files");
         const setSub = open => {
             sub.classList.toggle("open", open);
             filesBtn.setAttribute("aria-expanded", String(open));
@@ -573,7 +572,7 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
             exportBtn.setAttribute("aria-expanded", String(open));
         };
 
-        const place = makeMovable([panel], [header], "fgPosFanatical", true);
+        const place = makeMovable([host], [header], "fgPosFanatical", true);
         header.title = "Click to open or close. Drag to move.";
         header.addEventListener("click", () => {
             const open = body.style.display === "block";
@@ -592,10 +591,10 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
             exportAs(item.dataset.format);
         });
 
-        const onlyNew = panel.querySelector("#fg-onlynew-box");
+        const onlyNew = root.querySelector("#fg-onlynew-box");
         chrome.storage.local.get("onlyNew").then(v => { onlyNew.checked = Boolean(v.onlyNew); }).catch(() => {});
         onlyNew.addEventListener("change", () => chrome.storage.local.set({ onlyNew: onlyNew.checked }).catch(() => {}));
-        panel.querySelector("#fg-forget").addEventListener("click", async () => {
+        root.querySelector("#fg-forget").addEventListener("click", async () => {
             const { exportedKeys = {} } = await chrome.storage.local.get("exportedKeys");
             const n = Object.keys(exportedKeys).length;
             if (n && !window.confirm(`Forget the ${n} key${n === 1 ? "" : "s"} you've exported? The next export will include them again.`)) return;
@@ -603,16 +602,20 @@ ${rows.map(r => `<tr><td>${htmlEsc(r.title)}</td><td><code>${htmlEsc(r.key)}</co
             setStatus(n ? `Forgot ${n} exported key${n === 1 ? "" : "s"}` : "Nothing to forget");
         });
 
-        panel.querySelector("#fg-reveal").addEventListener("click", revealAll);
-        panel.querySelector("#fg-redeem").addEventListener("click", redeemOnSteam);
-        panel.querySelector("#fg-stop").addEventListener("click", () => {
+        const pickBtn = root.querySelector("#fg-pick"), pickList = root.querySelector("#fg-picklist");
+        pickBtn.addEventListener("click", () => { const open = !pickList.classList.contains("open"); pickList.classList.toggle("open", open); pickBtn.setAttribute("aria-expanded", String(open)); drawPicks(); place(); });
+        root.querySelector("#fg-options").addEventListener("click", () => { try { chrome.runtime.sendMessage({ type: "open-options" }); } catch { /* the extension was reloaded */ } });
+
+        root.querySelector("#fg-reveal").addEventListener("click", revealAll);
+        root.querySelector("#fg-redeem").addEventListener("click", redeemOnSteam);
+        root.querySelector("#fg-stop").addEventListener("click", () => {
             stopRequested = true;
             setStatus("Stopping after current key...");
         });
 
         // Close the menu on outside click or Escape
         document.addEventListener("click", e => {
-            if (!panel.contains(e.target)) setMenu(false);
+            if (!host.contains(e.target)) setMenu(false);
         });
         document.addEventListener("keydown", e => {
             if (e.key === "Escape") setMenu(false);

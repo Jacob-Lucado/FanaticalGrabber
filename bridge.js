@@ -23,13 +23,26 @@
             await chrome.storage.local.set({ svcToken: m.token });
             return say({ type: "connected", ok: true });
         }
+        // Keys are only handed to the page right after the person clicked something on it, and the first time they are asked
+        // by the extension itself. A script that got onto the site somehow can't quietly ask for them in the background.
+        const clicked = () => navigator.userActivation?.isActive !== false;
+        const allowed = async () => {
+            const { vaultOk } = await chrome.storage.local.get("vaultOk");
+            if (vaultOk) return true;
+            if (!window.confirm("FanaticalGrabber: let this Steam Value Checker page list and redeem the keys saved in this browser?\n\nThey stay in your browser and go only to Steam. You'll be asked once.")) return false;
+            await chrome.storage.local.set({ vaultOk: true });
+            return true;
+        };
         if (m.type === "vault") {
+            if (!clicked()) return say({ type: "vault", items: [], locked: true }); // the page shows a button to ask again
+            if (!(await allowed())) return say({ type: "vault", items: [], locked: true });
             // Revealed keys not yet redeemed, for the dashboard's key vault. The page gets them like a paste; they are never sent to the server.
             const { vault = {}, redeemed = {} } = await chrome.storage.local.get(["vault", "redeemed"]);
             const items = Object.entries(vault).filter(([k]) => !FINAL.includes(redeemed[k]?.status)).map(([key, v]) => ({ key, title: v.title || "Unknown", at: v.at || null })).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, MAX_KEYS);
             return say({ type: "vault", items });
         }
         if (m.type !== "redeem" || typeof m.id !== "string" || !Array.isArray(m.items)) return;
+        if (!clicked() || !(await allowed())) return say({ type: "done", id: m.id, aborted: "Press Run again to start: the extension only redeems right after you click." });
         if (running) return say({ type: "busy", id: m.id });
         running = true;
         try {

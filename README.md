@@ -4,7 +4,7 @@
 
 **Reveal, export and redeem your Fanatical keys without all the clicking.**
 
-![Version](https://img.shields.io/badge/version-2.11.1-ff9800)
+![Version](https://img.shields.io/badge/version-2.12.0-ff9800)
 ![Manifest](https://img.shields.io/badge/manifest-v3-107c41)
 ![Browsers](https://img.shields.io/badge/browsers-Chromium-66c0f4)
 ![Status](https://img.shields.io/badge/steam%20redeem-beta-orange)
@@ -25,7 +25,8 @@ FanaticalGrabber is a Chromium extension that adds a small panel to your Fanatic
 - Reveal every key in one click
 - Export keys in seven different ways
 - Redeem them on Steam (beta)
-- Everything runs locally in your browser
+- Reveals, exports and redeems run in your browser
+- Linked with the free Steam Value Checker bot, it also compares prices and shows what you own
 
 > **Note:** This is an independent project. It is not affiliated with, endorsed by, or sponsored by Fanatical or Valve. Steam is a trademark of Valve Corporation.
 
@@ -48,8 +49,18 @@ Tick **Only keys I haven't exported** in that menu and a second export contains 
 | JSON | `.json` | Includes export timestamp and key count |
 | Markdown | `.md` | Table format, good for notes apps |
 | HTML | `.html` | Standalone, printable page with a table |
-| Excel | `.xlsx` | Uses the bundled SheetJS library |
+| Excel | `.xlsx` | Written by a small built-in writer, no library needed |
 | Clipboard | n/a | Copies `Game \| Key` lines, no file downloaded |
+
+### New in 2.12
+- **Choose games:** tick the games you want under **Choose games** and the export holds only those.
+- **Every order in one export:** each order page you open and reveal is remembered in your browser. Tick **Include every order I've opened** in the Export menu and a file or clipboard export covers all of them. Clear the list on the options page.
+- **Options page** (the Options link in the panel, or the extension's Details page): the export file name (`{date}`, `{time}`, `{order}`, `{count}`), the clipboard line (`{title}`, `{key}`, `{order}`, `{platform}`), order columns in exports (order number, order date, platform), and the pauses between reveals and between redeems.
+- **Other languages:** Reveal All knows the button in the languages Fanatical offers. If yours isn't matched, type the button's text on the options page.
+- **Humble keys (beta):** on Humble's keys page and download pages a purple panel exports the keys that are showing, and can reveal the rest after asking, since a revealed Humble key can no longer be gifted.
+- **Smaller and tidier:** the 880 KB spreadsheet library is gone (the extension is about a quarter of its old size), and the panel now lives in its own shadow tree so Fanatical's styles and the panel's can't affect each other.
+- **Safer batch redeem:** the dashboard page can only list or redeem your saved keys right after you click, and the extension asks you itself the first time.
+- **Firefox build:** `npm run build` makes a Firefox copy in `dist/firefox`. It has not been through Mozilla's review yet.
 
 ### Steam batch redeem panel (new in 2.4)
 On Steam itself the extension becomes a batch redeem tool with its own panel. On **store.steampowered.com/account/registerkey** it sits right under the form, and on every other Steam store page it is a pulsing **Batch Redeem** bar (click it to open). Both panels can be dragged anywhere by their bar or header, and remember where you put them.
@@ -117,7 +128,7 @@ Redeems your **already revealed** keys on the Steam account you're logged into.
 - Live status panel that shows progress and the reason when something fails
 - Game titles are read from more than one place on the page
 - The panel collapses to a single bar
-- No servers, analytics or advertising
+- No analytics or advertising
 
 ---
 
@@ -177,16 +188,19 @@ Possible statuses in the report:
 | Permission | Why it's needed |
 | --- | --- |
 | `clipboardWrite` | Copy keys when you choose "Copy to clipboard" |
-| `storage` | Remember which keys were already redeemed (stored locally) |
+| `storage` | Remember revealed, redeemed and exported keys, your options and your link code (all in your browser) |
 | `cookies` | Read your Steam `sessionid` to redeem keys on your account |
+| `alarms` | The half-hourly check for the toolbar number, and automatic claiming if you switch it on |
 | `https://store.steampowered.com/*` | Send redeem requests to Steam, show the batch redeem panel and read which games your account owns |
-| `https://www.fanatical.com/*`, `https://fanatical.com/*` | Run on Fanatical pages to reveal and read keys |
+| `https://steamvaluechecker.com/*` | Everything the linked bot does: prices, your library, the toolbar number, the update check |
+| Fanatical, Humble, GOG, Epic and Green Man Gaming pages | Show the panels and price cards on the pages you open there |
 
 **Privacy summary**
-- Keys and titles are read from the page you have open and used only for the actions you trigger.
-- Keys are sent to Steam **only** when you click Redeem.
-- The redeemed-key history stays in your browser's local extension storage.
-- No data is sent to the developer or any third party. There are no servers, analytics or ads.
+- Keys are read from the page you have open and used only for the actions you trigger. They are sent to Steam **only** when you click Redeem, and never to the developer.
+- Revealed, redeemed and exported keys are remembered in your browser's local extension storage, and you can clear them.
+- Without a link to the Steam Value Checker bot, the only thing the extension asks the developer's site is which version is newest.
+- Once you link the bot, game titles, Steam game numbers and your link code are sent to steamvaluechecker.com for prices, your library and the toolbar number. The privacy policy lists each case.
+- No analytics, no ads, nothing sold.
 
 Full details: **[Privacy Policy](https://jacob-lucado.github.io/FanaticalGrabber/privacy.html)**
 
@@ -231,9 +245,9 @@ It only appears on pages that contain "Reveal Key" buttons or already-revealed k
 </details>
 
 <details>
-<summary><b>Excel export says the library isn't loaded.</b></summary>
+<summary><b>Reveal All finds nothing, but I can see the buttons.</b></summary>
 
-`xlsx.full.min.js` is missing from the extension folder. It must be bundled with the extension.
+Your Fanatical is probably in a language the extension doesn't know yet. Open **Options** in the panel and type the button's text into **Reveal button text**, exactly as the page shows it.
 </details>
 
 ---
@@ -243,16 +257,23 @@ It only appears on pages that contain "Reveal Key" buttons or already-revealed k
 ```
 FanaticalGrabber/
 ├─ manifest.json        Extension manifest (MV3)
-├─ content.js           Panel UI, reveal, export and redeem logic
-├─ background.js        Service worker that talks to Steam
-├─ xlsx.full.min.js     SheetJS, used for .xlsx export
-├─ icon16.png
-├─ icon48.png
-├─ icon128.png
+├─ lib.js               Shared helpers: export builders, the Excel writer, file names, options
+├─ content.js           Fanatical order pages: panel, reveal, export and redeem
+├─ deals.js             Fanatical bundle and cart check
+├─ regions.js           Region check on Fanatical and the other stores
+├─ humble.js            Humble keys page: export and reveal (beta)
+├─ stores.js, theme.js  Price cards on Humble, GOG, Epic and Green Man Gaming, in each store's colors
+├─ steam.js             Steam: batch redeem panel, price overlay, bundle and cart checks
+├─ history.js           Steam purchase history: Send what I paid
+├─ licenses.js          Steam licenses: Record retail prices
+├─ bridge.js            Talks to the Steam Value Checker dashboard page (link code, batch redeem)
+├─ background.js        Service worker: Steam requests, the linked bot, toolbar number
+├─ popup.html/js/css    Toolbar popup
+├─ options.html/js      Options page
+├─ update.js, stack.js  Update reminder, and where the small cards stack
+├─ tests/               node:test suites (run with `npm test`); nothing here ships
+├─ scripts/             build.mjs makes dist/chrome and dist/firefox
 └─ docs/                Project website (GitHub Pages)
-   ├─ index.html
-   ├─ privacy.html
-   └─ ...
 ```
 
 ### How it works
@@ -264,25 +285,35 @@ FanaticalGrabber/
 
 ## Development
 
-No build step is required.
+No build step is required to run it. For the tests and the packaged copies:
+
+```bash
+npm install     # jsdom, for the tests only
+npm test        # the panels and the dashboard bridge run against a fake page
+npm run build   # dist/chrome and dist/firefox, without tests or docs
+```
+
+The Fanatical and Humble test pages in `tests/` are cut-down copies of what the extension reads, not the live sites, so a change on either site still has to be caught by hand.
 
 1. Clone the repository.
 2. Load the folder as an unpacked extension (see [Installation](#installation)).
 3. After editing a file, click **Reload** on the extension card and refresh the Fanatical tab.
 4. To debug the Steam requests, open the extension's **service worker** console from the extensions page.
 
-The selectors that read the Fanatical page (`input[aria-label="reveal-key"]`, `article`, and the "Reveal Key" button text) depend on Fanatical's markup. If the site changes, these are the first things to update, and they are defined at the top of `content.js`.
+The selectors that read the Fanatical page (`input[aria-label="reveal-key"]`, `article`, and the Reveal Key button text, matched by `isRevealLabel` in `lib.js`) depend on Fanatical's markup. If the site changes, these are the first things to update, and they are defined at the top of `content.js`.
 
 ---
 
 ## Ideas & roadmap
 
-- [ ] Language-independent reveal button detection
-- [ ] Platform and order metadata columns in exports
-- [ ] Selective export (choose specific games)
-- [ ] Options page (clipboard behavior, delay, filename format)
-- [ ] Shadow DOM for the panel to isolate styles
+- [x] Reveal button detection in other languages
+- [x] Platform and order columns in exports
+- [x] Selective export (choose specific games)
+- [x] Options page (clipboard format, delays, file name)
+- [x] Shadow DOM for the panel to isolate styles
 - [x] Chrome Web Store release
+- [ ] Firefox add-on listing (the build exists)
+- [ ] Read the whole Fanatical order list in one go, without opening each order
 
 Have an idea? Open an [issue](../../issues) or message [@twit_user69](https://x.com/twit_user69).
 
