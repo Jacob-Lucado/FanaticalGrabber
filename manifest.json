@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FanaticalGrabber",
-  "version": "2.11.0",
+  "version": "2.11.1",
   "description": "Reveal, export and redeem Fanatical keys, check regions in one click, and compare prices with the free Steam Value Checker bot.",
   "permissions": [
     "clipboardWrite",
